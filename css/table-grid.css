@@ -1,0 +1,531 @@
+/* === table-grid.css === 表格视图 + 九宫格视图样式 */
+
+/* ========== 共享头部（宽表 & 画布通用） ========== */
+.shared-header {
+    padding: 0;
+    background: #f5f6f8;
+    flex-shrink: 0;
+}
+
+/* ========== 宽表视图整体 ========== */
+.table-view {
+    padding: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f5f6f8;
+    min-height: 0;
+}
+
+/* ========== 顶部标题栏 ========== */
+.wt-title-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 24px 0;
+}
+.wt-title-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+.wt-history-link {
+    font-size: 13px;
+    color: #888;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.wt-history-link:hover {
+    color: var(--primary, #4f46e5);
+}
+
+/* ========== 视角信息栏 ========== */
+.wt-perspective-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    margin: 12px 24px 0;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #eee;
+}
+.wt-perspective-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.wt-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #e8e8ec;
+    flex-shrink: 0;
+}
+.wt-perspective-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.wt-perspective-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+.wt-switch-btn {
+    font-size: 12px;
+    color: #888;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+}
+.wt-switch-btn:hover {
+    background: #f0f0f4;
+    color: #333;
+}
+.wt-perspective-org {
+    font-size: 12px;
+    color: #999;
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 统计卡片 */
+.wt-stats-cards {
+    display: flex;
+    gap: 32px;
+}
+.wt-stat-card {
+    text-align: center;
+    min-width: 80px;
+}
+.wt-stat-label {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+.wt-stat-info {
+    font-size: 11px;
+    color: #bbb;
+    cursor: help;
+}
+.wt-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+/* ========== 筛选栏 ========== */
+.wt-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    margin: 12px 24px 0;
+    gap: 12px;
+}
+.wt-filter-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.wt-filter-select {
+    height: 32px;
+    padding: 0 28px 0 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") no-repeat right 10px center;
+    background-size: 10px 6px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.wt-filter-select:hover,
+.wt-filter-select:focus {
+    border-color: #aaa;
+}
+.wt-filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.wt-filter-checkbox input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary, #4f46e5);
+    cursor: pointer;
+}
+.wt-filter-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.wt-action-btn {
+    height: 34px;
+    padding: 0 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.wt-action-btn-default {
+    background: #fff;
+    border-color: #ddd;
+    color: #333;
+}
+.wt-action-btn-default:hover {
+    border-color: #bbb;
+    background: #fafafa;
+}
+.wt-action-btn-outline {
+    background: #fff;
+    border-color: #1a1a1a;
+    color: #1a1a1a;
+}
+.wt-action-btn-outline:hover {
+    background: #f5f5f5;
+}
+.wt-action-btn-primary {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    color: #fff;
+}
+.wt-action-btn-primary:hover {
+    background: #333;
+}
+
+/* ========== 统计行 + 视图切换标签 ========== */
+.wt-summary-row {
+    padding: 8px 24px;
+    font-size: 13px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.wt-summary-count {
+    color: var(--primary, #4f46e5);
+    font-weight: 600;
+}
+
+/* 视图切换标签 */
+.wt-view-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-left: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f5f6f8;
+}
+.wt-view-tab {
+    padding: 4px 16px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-weight: 500;
+    transition: all 0.15s;
+    white-space: nowrap;
+    line-height: 24px;
+}
+.wt-view-tab:not(:last-child) {
+    border-right: 1px solid #e0e0e0;
+}
+.wt-view-tab:hover {
+    background: #eee;
+}
+.wt-view-tab.active {
+    background: #fff;
+    color: var(--primary, #4f46e5);
+    font-weight: 600;
+}
+
+/* ========== 表格容器 ========== */
+.data-table {
+    flex: 1;
+    margin: 0 24px 24px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    overflow: hidden;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 100%;
+    flex: 1;
+}
+
+/* ========== 表格基础 ========== */
+table {
+    width: max-content;
+    border-collapse: collapse;
+    table-layout: fixed;
+    min-width: 100%;
+}
+
+th {
+    background: #fafbfc;
+    padding: 0 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    color: #999;
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #f0f0f2;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+}
+th:last-child {
+    border-right: none;
+}
+
+td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #f0f0f2;
+    border-right: 1px solid #f0f0f2;
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+    min-width: 120px;
+}
+td:last-child {
+    border-right: none;
+}
+
+/* 分组表头行（第一行） */
+#employeeTable thead tr:first-child th {
+    height: 32px;
+    line-height: 32px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary, #4f46e5);
+    top: 0;
+    background: #fafbfc;
+    border-bottom: 1px solid #eee;
+}
+
+/* 有分组标签的表头 */
+#employeeTable thead tr:first-child th.wt-group-has-label {
+    color: var(--primary, #4f46e5);
+}
+
+/* 无分组标签的表头 */
+#employeeTable thead tr:first-child th:not(.wt-group-has-label) {
+    color: transparent;
+}
+
+/* 字段表头行（第二行） */
+#employeeTable thead tr:nth-child(2) th {
+    height: 40px;
+    line-height: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    top: 32px;
+    background: #fafbfc;
+    border-bottom: 2px solid #eee;
+}
+
+#employeeTable thead th.wide-group-head:empty::after {
+    content: "\00a0";
+}
+
+/* 复选框列 */
+.wt-chk-col {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    text-align: center;
+    padding: 0 !important;
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: inherit;
+}
+th.wt-chk-col {
+    background: #fafbfc;
+    z-index: 12;
+}
+td.wt-chk-col {
+    background: #fff;
+}
+tr:hover td.wt-chk-col {
+    background: #f5f7ff;
+}
+tr.selected td.wt-chk-col {
+    background: #f0f2ff;
+}
+
+.wt-chk {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary, #4f46e5);
+    cursor: pointer;
+}
+
+/* 行样式 */
+tr:hover {
+    background: #f5f7ff;
+}
+
+tr.selected {
+    background: #f0f2ff;
+}
+
+/* 特殊值颜色 */
+td .wt-cell-muted {
+    color: #ccc;
+}
+td .wt-cell-warn {
+    color: #e8a735;
+}
+td .wt-cell-link {
+    color: var(--primary, #4f46e5);
+    cursor: pointer;
+}
+
+/* 姓名列 */
+.wt-name-cell {
+    min-width: 140px !important;
+}
+.wt-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.wt-row-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #e8e8ec;
+    flex-shrink: 0;
+}
+
+/* 调薪滑块（行内） */
+.inline-slider {
+    width: 120px;
+    height: 6px;
+    border-radius: 3px;
+    background: #eee;
+    outline: none;
+    cursor: pointer;
+}
+
+.inline-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary, #4f46e5);
+    cursor: pointer;
+}
+
+/* ========== 九宫格视图 ========== */
+.grid-view {
+    padding: 24px;
+    height: 100%;
+}
+
+.nine-grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    height: 100%;
+}
+
+.grid-cell {
+    background: var(--surface, #fff);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    overflow-y: auto;
+    border: 1px solid #eee;
+    transition: all 0.2s;
+}
+
+.grid-cell:hover {
+    border-color: var(--primary, #4f46e5);
+}
+
+.grid-cell-header {
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.grid-cell-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 5px;
+    color: #1a1a1a;
+}
+
+.grid-cell-count {
+    font-size: 12px;
+    color: #999;
+}
+
+.mini-card {
+    background: #f8f9fb;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: move;
+    transition: all 0.2s;
+    border-left: 3px solid var(--primary, #4f46e5);
+}
+
+.mini-card:hover {
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left-color: #333;
+}
+
+.mini-card-name {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: #1a1a1a;
+}
+
+.mini-card-info {
+    font-size: 11px;
+    color: #999;
+}
+
+/* ========== 表格视图操作栏（旧，兼容） ========== */
+.table-view-actions {
+    display: none;
+}

@@ -1,0 +1,566 @@
+/* === todo.css === 待办任务系统样式（胶囊、面板、卡片） */
+
+/* todo-tab-outer */
+.todo-tab-outer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 4px 8px 4px 4px;
+    background: var(--border-light);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    min-height: 48px;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+}
+.todo-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 6px 0 6px 10px;
+    margin-left: 4px;
+    border-left: 1px solid var(--border);
+    font-size: 12px;
+}
+.todo-inline-empty { padding: 0; margin: 0; border: none; }
+.todo-inline-ddl { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.todo-inline-ddl.near { color: #b45309; font-weight: 600; }
+.todo-inline-ddl.over { color: #dc2626; font-weight: 600; }
+.todo-inline-steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.todo-inline-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text);
+    cursor: default;
+}
+.todo-inline-step .step-status { color: var(--text-muted); font-size: 10px; }
+.todo-inline-enter {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--primary);
+    color: #fff;
+    font-family: inherit;
+}
+.todo-inline-enter:hover { filter: brightness(1.05); }
+.todo-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+.todo-tab-btn:hover { background: var(--surface); color: var(--text); }
+.todo-tab-btn.active { background: var(--primary); color: #fff; font-weight: 600; box-shadow: var(--shadow); }
+.todo-tab-btn.active .todo-tab-n { background: rgba(255,255,255,.3); color: #fff; }
+.todo-tab-n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    padding: 0 5px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--border);
+    color: var(--text-muted);
+}
+.todo-tab-ddl {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 4px;
+    white-space: nowrap;
+}
+.todo-tab-ddl.near { color: #b45309; font-weight: 600; }
+.todo-tab-ddl.over { color: #dc2626; font-weight: 600; }
+
+/* 任务胶囊 pill-group */
+.pill-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ═══ 待办任务统一入口 ═══ */
+.pill-todo-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.pill-todo-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px 5px 11px;
+    border-radius: 18px;
+    background: rgba(37,99,235,0.08);
+    border: 1px solid rgba(37,99,235,0.22);
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #1e3a8a;
+    transition: background 0.2s, border-color 0.2s;
+    user-select: none;
+}
+.pill-todo-main:hover {
+    background: rgba(37,99,235,0.14);
+    border-color: rgba(37,99,235,0.35);
+}
+.pill-todo-wrapper.open .pill-todo-main {
+    background: rgba(37,99,235,0.18);
+    border-color: #2563eb;
+}
+.pill-todo-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+.pill-todo-text {
+    font-size: 12px;
+    font-weight: 600;
+}
+.pill-todo-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #2563eb;
+    color: #fff;
+}
+.pill-todo-arrow {
+    font-size: 10px;
+    color: rgba(37,99,235,0.6);
+    transition: transform 0.2s;
+}
+.pill-todo-wrapper.open .pill-todo-arrow {
+    transform: rotate(180deg);
+}
+
+/* 下拉面板 */
+.pill-todo-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 300px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06);
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.18s, transform 0.18s;
+    z-index: 1000;
+    overflow: hidden;
+}
+.pill-todo-dropdown.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* 下拉选项行 */
+.pill-todo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.pill-todo-item:hover {
+    background: rgba(37,99,235,0.04);
+}
+.pill-todo-item:last-child {
+    border-bottom: none;
+}
+.pill-todo-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.pill-todo-item-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.pill-todo-item-dot.fill {
+    background: #2563eb;
+}
+.pill-todo-item-dot.approve {
+    background: rgba(0,0,0,0.25);
+}
+.pill-todo-item-dot.approve.mine {
+    background: #2563eb;
+}
+.pill-todo-item-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+.pill-todo-item-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pill-todo-item-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.pill-todo-item-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: filter 0.15s, box-shadow 0.15s;
+}
+.pill-todo-item-badge:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 1px 4px rgba(37,99,235,0.25);
+}
+.pill-todo-item-badge.fill {
+    background: #2563eb;
+    color: #fff;
+}
+.pill-todo-item-badge.approve {
+    background: rgba(37,99,235,0.1);
+    color: #2563eb;
+}
+.pill-todo-item-approve.has-mine .pill-todo-item-badge.approve {
+    background: #2563eb;
+    color: #fff;
+}
+.pill-todo-item-expand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    font-size: 10px;
+    color: rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: transform 0.2s, background 0.15s, color 0.15s;
+    margin-left: 2px;
+}
+.pill-todo-item-expand:hover {
+    background: rgba(37,99,235,0.1);
+    color: #2563eb;
+}
+.pill-todo-item-expand.rotated {
+    transform: rotate(180deg);
+}
+
+/* 子级展开列表（各部门状态） */
+.pill-todo-sublist {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+    background: rgba(0,0,0,0.015);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.pill-todo-sublist.open {
+    max-height: 400px;
+}
+.pill-todo-sublist-title {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: rgba(0,0,0,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 8px 14px 4px 30px;
+}
+.pill-todo-sublist-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px 7px 30px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-top: 1px solid rgba(0,0,0,0.04);
+}
+.pill-todo-sublist-row:hover {
+    background: rgba(37,99,235,0.06);
+}
+.pill-todo-sublist-row-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.pill-todo-sublist-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.pill-todo-sublist-dot.mine { background: #2563eb; }
+.pill-todo-sublist-dot.other { background: rgba(0,0,0,0.2); }
+.pill-todo-sublist-name-wrap {
+    min-width: 0;
+}
+.pill-todo-sublist-name {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text);
+}
+.pill-todo-sublist-combo {
+    font-size: 10.5px;
+    color: rgba(0,0,0,0.5);
+}
+.pill-todo-sublist-node {
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+.pill-todo-sublist-node.mine {
+    color: #2563eb;
+    font-weight: 600;
+}
+.pill-todo-sublist-node.other {
+    color: rgba(0,0,0,0.45);
+    font-weight: 400;
+}
+
+
+/* 待办面板 */
+/* 待办面板（由 JS 根据点击的 Tab 定位到对应按钮下方） */
+.todo-panel {
+    position: fixed;
+    width: 320px;
+    max-height: calc(100vh - 100px);
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px var(--border);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(-6px);
+    opacity: 0;
+    transition: transform .22s cubic-bezier(.34,1.3,.64,1), opacity .2s;
+    pointer-events: none;
+}
+.todo-panel.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.tp-head { padding: 14px 16px 0; flex-shrink: 0; }
+.tp-title { font-size: 14px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 10px; color: var(--text); }
+.tp-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--border-light);
+    border-radius: 7px;
+    padding: 2px;
+    margin-bottom: 12px;
+}
+.tp-tab {
+    flex: 1;
+    padding: 6px 0;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    font-size: 11.5px;
+    font-family: inherit;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+.tp-tab.active { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: var(--shadow); }
+.tp-tab-n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    padding: 0 3px;
+    font-size: 9.5px;
+    font-weight: 700;
+}
+.tp-tab.active .tp-tab-n { background: var(--primary); color: #fff; }
+.tp-tab:not(.active) .tp-tab-n { background: var(--border); color: var(--text-muted); }
+.tp-list { overflow-y: auto; padding: 0 10px 12px; flex: 1; min-height: 120px; }
+.tp-list::-webkit-scrollbar { width: 4px; }
+.tp-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.task-card {
+    border-radius: 8px;
+    border: 1.5px solid var(--border-light);
+    margin-bottom: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+}
+.task-card:last-child { margin-bottom: 0; }
+.task-card:hover { border-color: var(--border); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.task-card.active-task { border-color: var(--task-type-color, var(--primary)); box-shadow: 0 0 0 3px var(--task-type-bg, var(--primary-bg)); }
+.tc-head { padding: 9px 11px 7px; display: flex; align-items: flex-start; gap: 7px; }
+.tc-type-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.tc-rejected-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(220, 38, 38, .1);
+    color: #dc2626;
+    flex-shrink: 0;
+}
+.tc-meta { flex: 1; min-width: 0; }
+.tc-dept { font-size: 12px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 2px; color: var(--text); }
+.tc-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tc-n { font-size: 10.5px; color: var(--text-muted); }
+.tc-n strong { color: var(--text); }
+.tc-ddl { font-size: 10px; font-family: ui-monospace, monospace; color: var(--text-muted); }
+.tc-ddl.near { color: #c8922a; font-weight: 600; }
+.tc-ddl.over { color: #dc2626; font-weight: 600; }
+.task-steps-wrap { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border-light); }
+.task-step-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 10.5px; padding: 3px 0; }
+.task-step-label { font-weight: 600; flex-shrink: 0; }
+.task-step-ddl { font-family: ui-monospace, monospace; color: var(--text-muted); font-size: 10px; }
+.task-step-ddl.near { color: #c8922a; font-weight: 600; }
+.task-step-ddl.over { color: #dc2626; font-weight: 600; }
+.task-step-status { margin-left: auto; color: var(--text-muted); font-size: 10px; }
+.tc-footer {
+    padding: 6px 11px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.tc-status { font-size: 10.5px; color: var(--text-muted); }
+.tc-enter { font-size: 11px; font-weight: 600; color: var(--task-type-color, var(--primary)); background: none; border: none; cursor: pointer; font-family: inherit; padding: 0; }
+.reject-reason {
+    padding: 6px 11px;
+    background: rgba(220, 38, 38, .05);
+    border-top: 1px solid rgba(220, 38, 38, .12);
+    font-size: 10.5px;
+    color: #dc2626;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    line-height: 1.5;
+}
+/* 任务上下文条（进入任务后画布顶部） */
+.task-ctx-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 14px;
+    margin-bottom: 12px;
+    background: var(--primary-bg);
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    border-radius: var(--radius);
+    flex-wrap: wrap;
+}
+.task-ctx-bar.visible { display: flex; }
+.task-ctx-bar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.task-ctx-bar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.task-ctx-bar-right .task-ctx-btn-list {
+    display: none;
+    margin-right: 8px;
+    padding: 4px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(37,99,235,0.35);
+    background: rgba(37,99,235,0.1);
+    color: #2563eb;
+    cursor: pointer;
+}
+.task-ctx-bar.approve-mode .task-ctx-btn-list { display: inline-flex; align-items: center; gap: 4px; }
+.task-ctx-btn-list:hover {
+    background: rgba(37,99,235,0.16);
+    border-color: rgba(37,99,235,0.5);
+}
+.task-ctx-btn-list.open {
+    background: rgba(37,99,235,0.18);
+    border-color: #2563eb;
+}
+.task-ctx-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.task-ctx-type { font-size: 12px; font-weight: 600; color: var(--primary); }
+.task-ctx-tag { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: rgba(220,38,38,.2); color: #dc2626; }
+.task-ctx-sep { width: 1px; height: 12px; background: var(--border); flex-shrink: 0; }
+.task-ctx-info { font-size: 11px; color: var(--text-muted); }
+.task-ctx-submit { padding: 4px 12px; border-radius: var(--radius-sm); background: #22c55e; border: none; color: #fff; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.task-ctx-submit:hover { opacity: .9; }
+.task-ctx-exit { padding: 4px 10px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); font-size: 11.5px; cursor: pointer; }
+.task-ctx-exit:hover { background: var(--border-light); }
+.task-ctx-hint { font-size: 11px; color: var(--text-muted); font-style: normal; }
+.perf-task-canvas-hint {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 10px;
+    padding: 6px 0;
+}
+.scatter-card.scatter-card-rejected { border: 2px solid #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.15); }
+.scatter-card.scatter-card-locked { border-color: rgba(34,197,94,.4); opacity: .85; pointer-events: none; }
+/* 已调薪卡片：淡淡框 + 显示原薪酬 */
+.scatter-card.scatter-card-adjusted {
+    box-shadow: none;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+.scatter-card.scatter-card-adjusted:hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-color: var(--border);
+}
+.todo-context-capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 12px;
+    background: var(--primary-bg);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 20px;
+}
+.todo-context-capsule .todo-capsule-close {
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    line-height: 1;
+}
+.todo-context-capsule .todo-capsule-close:hover { opacity: 1; }

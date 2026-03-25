@@ -1,0 +1,171 @@
+/* === approval.css === 审批模式相关样式 */
+
+/* 审批列表面板 */
+.approval-list-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 50%;
+    min-height: 200px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    z-index: 200;
+    transform: translateY(-100%);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.approval-list-panel.open {
+    transform: translateY(0);
+}
+.approval-list-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    background: var(--bg);
+}
+.approval-list-header label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+.approval-list-header .approval-list-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+.approval-list-pass-selected,
+.approval-list-submit {
+    padding: 4px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+.approval-list-pass-selected,
+.approval-list-submit {
+    background: #22c55e;
+    color: #fff;
+}
+.approval-list-pass-selected:hover,
+.approval-list-submit:not(:disabled):hover { opacity: 0.9; }
+.approval-list-submit:disabled {
+    background: var(--border);
+    color: var(--text-muted);
+    cursor: default;
+}
+.approval-list-body {
+    flex: 1;
+    overflow: auto;
+}
+.approval-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.approval-list-table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--bg);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.approval-list-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-light);
+}
+.approval-list-table tr {
+    cursor: pointer;
+}
+.approval-list-table tr:hover {
+    background: var(--bg);
+}
+.approval-list-table tr.approval-row-active {
+    background: rgba(37,99,235,0.08);
+}
+.approval-list-table tr.approval-row-anomaly {
+    background: rgba(220,38,38,0.08);
+}
+.approval-list-table .name-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.approval-list-table .name-warn {
+    color: #dc2626;
+    font-size: 14px;
+}
+.approval-list-table .status-passed { color: #059669; font-weight: 600; }
+.approval-list-table .status-marked { color: #dc2626; }
+.approval-th-sort { white-space: nowrap; }
+.approval-sort-btn {
+    display: inline-block;
+    margin-left: 2px;
+    padding: 0 3px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 11px;
+    border-radius: 2px;
+}
+.approval-sort-btn:hover { color: var(--text); background: var(--border-light); }
+.approval-sort-btn.approval-sort-active { color: #2563eb; font-weight: 600; }
+/* 画布卡片审批高亮 */
+.scatter-card.approval-highlight {
+    border: 2px solid #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+    z-index: 85;
+}
+/* 审批抽屉内容区（复用右侧面板时的底部操作） */
+.approval-drawer-actions {
+    position: sticky;
+    bottom: 0;
+    padding: 16px 0;
+    border-top: 1px solid var(--border-light);
+    margin-top: 20px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+}
+.approval-drawer-actions > .btn,
+.approval-drawer-actions > button {
+    flex: 1 1 0%;
+    width: 0 !important;
+    min-width: 0;
+    min-height: 42px;
+    height: 42px;
+    padding: 0 16px;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--radius);
+    box-sizing: border-box;
+}
+.approval-drawer-actions .btn-pass { background: #22c55e; color: #fff; border: none; }
+.approval-drawer-actions .btn-pass:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
+.approval-drawer-actions .btn-mark { background: transparent; color: #dc2626; border: 1px solid #dc2626; }
+.approval-drawer-field { margin-bottom: 12px; font-size: 13px; }
+.approval-drawer-field .label { color: var(--text-muted); }
+.approval-drawer-field .warn { color: #dc2626; font-size: 11px; margin-top: 2px; }
+
+/* 审批高亮卡片 */
+.scatter-card.approval-highlight {
+    border: 2px solid #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+    z-index: 85;
+}

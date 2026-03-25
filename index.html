@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能薪资调整综合工作台</title>
+    <!-- CSS 模块 -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/scatter.css">
+    <link rel="stylesheet" href="css/table-grid.css">
+    <link rel="stylesheet" href="css/panel.css">
+    <link rel="stylesheet" href="css/approval.css">
+    <link rel="stylesheet" href="css/toolbar.css">
+    <link rel="stylesheet" href="css/todo.css">
+    <link rel="stylesheet" href="css/overlay.css">
+    <link rel="stylesheet" href="css/ai-assistant.css">
+    <link rel="stylesheet" href="css/demo-tabs.css">
+    <link rel="stylesheet" href="css/drawer.css">
+</head>
+<body>
+    <div class="main-container">
+        <!-- bot 左侧面板（常驻） -->
+        <div class="ai-left-panel" id="aiLeftPanel">
+            <div class="ai-left-header">
+                <div class="ai-left-header-top">
+                    <div class="ai-left-title-actions">
+                        <span class="ai-left-title" id="aiLeftTitle">
+                            <span class="ai-left-title-icon">&#128203;</span>
+                            bot
+                        </span>
+                        <button type="button" class="ai-left-record-btn" id="aiLeftRecordBtn" title="录音">🎙 录音</button>
+                    </div>
+                    <button type="button" class="ai-left-collapse-btn" id="aiLeftCollapseBtn" title="收起助手">‹</button>
+                </div>
+            </div>
+            <div class="ai-top-progress-host" id="aiTopProgressHost"></div>
+            <div class="ai-left-messages" id="meetingLeftMessages"></div>
+            <div class="ai-left-input-wrap" id="meetingLeftInput"></div>
+            <div class="ai-left-resizer" id="aiLeftResizer" title="拖拽调整宽度"></div>
+        </div>
+        <button type="button" class="ai-left-expand-btn" id="aiLeftExpandBtn" title="展开助手">bot ›</button>
+
+        <!-- 主画布区域 -->
+        <div class="canvas-area">
+            <div class="canvas-toolbar canvas-toolbar-minimal" id="canvasToolbarMinimal" style="display: none;"></div>
+            
+            <div class="canvas-content">
+                <!-- ===== 共享头部（宽表 & 画布通用） ===== -->
+                <div id="sharedHeader" class="shared-header">
+                    <!-- 顶部标题栏 -->
+                    <div class="wt-title-bar">
+                        <span class="wt-title-text">2026年4月薪酬回顾</span>
+                        <a class="wt-history-link" href="javascript:void(0)">≡ 查看历史周期</a>
+                    </div>
+                    <!-- 视角信息栏 -->
+                    <div class="wt-perspective-bar">
+                        <div class="wt-perspective-left">
+                            <div class="wt-avatar" id="wtAvatar"></div>
+                            <div class="wt-perspective-info">
+                                <div class="wt-perspective-name">
+                                    <span id="wtPerspectiveName">朱淑晴的视角</span>
+                                    <button type="button" class="wt-switch-btn" id="wtSwitchBtn">切换 ▾</button>
+                                </div>
+                                <div class="wt-perspective-org" id="wtPerspectiveOrg">企业工程与效能组/企业效能组/信息系统组/后端研发组/mi岗组</div>
+                            </div>
+                        </div>
+                        <div class="wt-stats-cards">
+                            <div class="wt-stat-card">
+                                <div class="wt-stat-label">实际调薪人数</div>
+                                <div class="wt-stat-value" id="wtStatAdjusted">0 / <span id="wtStatTotal">0</span></div>
+                            </div>
+                            <div class="wt-stat-card">
+                                <div class="wt-stat-label">人均涨幅 <span class="wt-stat-info" title="人均涨幅说明">ⓘ</span></div>
+                                <div class="wt-stat-value" id="wtStatAvgRaise">0.0%</div>
+                            </div>
+                            <div class="wt-stat-card">
+                                <div class="wt-stat-label">标记异常人数 <span class="wt-stat-info" title="标记异常人数说明">ⓘ</span></div>
+                                <div class="wt-stat-value" id="wtStatAnomaly">0</div>
+                            </div>
+                            <div class="wt-stat-card">
+                                <div class="wt-stat-label">连续调薪人数</div>
+                                <div class="wt-stat-value" id="wtStatConsecutive">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 筛选栏 -->
+                    <div class="wt-filter-bar">
+                        <div class="wt-filter-left">
+                            <select class="wt-filter-select" id="wtFilterNode">
+                                <option value="">流程节点</option>
+                                <option value="fill">待填报</option>
+                                <option value="approve">待审批</option>
+                                <option value="done">已完成</option>
+                            </select>
+                            <select class="wt-filter-select" id="wtFilterRole">
+                                <option value="">角色标签</option>
+                                <option value="star">明星员工</option>
+                                <option value="core">核心骨干</option>
+                                <option value="stable">稳定发展</option>
+                                <option value="potential">潜力新人</option>
+                            </select>
+                            <label class="wt-filter-checkbox"><input type="checkbox" id="wtFilterAdjustedOnly"> 仅调薪人员</label>
+                            <label class="wt-filter-checkbox"><input type="checkbox" id="wtFilterWithNotes"> 仅包含小记人员</label>
+                        </div>
+                        <div class="wt-filter-right">
+                            <button type="button" class="wt-action-btn wt-action-btn-default" onclick="alert('导出功能')">导出</button>
+                            <button type="button" class="wt-action-btn wt-action-btn-outline" onclick="alert('字段设置')">字段设置</button>
+                            <button type="button" class="wt-action-btn wt-action-btn-primary" onclick="alert('提交')">提交</button>
+                        </div>
+                    </div>
+                    <!-- 统计行 + 视图切换标签 -->
+                    <div class="wt-summary-row">
+                        <span>共计 <strong class="wt-summary-count" id="wtSummaryTotal">0</strong> 人，已选 <strong class="wt-summary-count" id="wtSummarySelected">0</strong> 人</span>
+                        <div class="wt-view-tabs">
+                            <button type="button" class="wt-view-tab active" id="wtViewTabTable" onclick="switchToTableView()">宽表视图</button>
+                            <button type="button" class="wt-view-tab" id="wtViewTabCanvas" onclick="switchToCanvasView()">画布视图</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 散点图视图（画布） -->
+                <div id="scatterView" class="scatter-view" style="display: none;">
+                    <div class="top-widgets-row" id="scatterTopWidgets" style="display: none;">
+                        <div class="top-widgets-unified">
+                            <div class="person-perspective-widget">
+                                <div class="widget-title">人员视角切换</div>
+                                <select id="personPerspectiveSelect" class="person-perspective-select" title="切换人员视角"><!-- 由 JS 填充选项 --></select>
+                            </div>
+                            <div class="task-title-widget" id="taskTitleWidget">
+                                <div class="task-title-main" id="taskTitleMain">
+                                    <span class="task-title-text" id="taskTitleText">2026年7月绩效+薪酬回顾</span>
+                                    <span class="task-title-tag task-title-tag-fill" id="taskTitleTag">待填报</span>
+                                    <span class="task-title-badge" id="taskTitleBadge">3</span>
+                                    <span class="task-title-arrow" id="taskTitleArrow">▾</span>
+                                </div>
+                                <div class="task-title-dropdown" id="taskTitleDropdown">
+                                    <!-- 由 JS 填充：默认视图、任务列表 -->
+                                </div>
+                            </div>
+                            <div class="top-widgets-actions" id="topWidgetsActions">
+                                <button type="button" class="task-ctx-btn-list" id="taskCtxApprovalListBtn" onclick="toggleApprovalListPanel()" style="display:none"><span id="taskCtxApprovalListLabel">审批列表</span> <span id="taskCtxApprovalListArrow">▾</span></button>
+                                <button type="button" class="task-ctx-submit" id="taskCtxSubmit" onclick="onTaskCtxSubmitClick()" style="display:none">提交方案</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="canvas-tools-row">
+                        <div class="circle-group-chips" id="circleGroupFilterChips" style="display:none"></div>
+                        <div class="todo-context-capsule" id="todoContextCapsule" style="display: none;"><span id="todoContextText"></span><span class="todo-capsule-close" onclick="clearSelectedTodo()" title="取消">×</span></div>
+                        <div class="axis-filter-cancel" id="axisFilterCancel" style="display: none;" onclick="clearAxisFilter()"><span>取消筛选</span></div>
+                    </div>
+                    <div class="axis-filter-popover" id="axisFilterPopover" style="display: none;" onclick="event.stopPropagation()">
+                        <div class="axis-filter-option" data-mode="only" onclick="applyAxisFilter('only')">只看当前</div>
+                        <div class="axis-filter-option" data-mode="hide" onclick="applyAxisFilter('hide')">隐藏当前</div>
+                    </div>
+                    <div class="chart-container" id="chartContainer">
+                        <div class="approval-list-panel" id="approvalListPanel">
+                            <div class="approval-list-header">
+                                <label><input type="checkbox" id="approvalListFilterReportToMe" onchange="toggleApprovalFilterReportToMe(this)"> 只看汇报给我</label>
+                                <div class="approval-list-actions">
+                                    <button type="button" class="approval-list-pass-selected" id="approvalListPassSelected" onclick="approvalPassSelected()">通过已选</button>
+                                </div>
+                            </div>
+                            <div class="approval-list-body">
+                                <table class="approval-list-table">
+                                    <thead><tr id="approvalListThead"></tr></thead>
+                                    <tbody id="approvalListBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="chart-canvas" id="chartCanvas">
+                            <div class="axis-label-y">(K)</div>
+                            <div class="axis-label-x">人员职级</div>
+                            <!-- 网格线和散点将通过JS动态生成 -->
+                        </div>
+                    </div>
+                    <!-- 左侧工具条（绝对定位，不占布局空间） -->
+                    <div class="side-toolbar-wrap" id="sideToolbarWrap" style="display: none;">
+                        <button type="button" class="side-toolbar-btn active" id="sideToolSelect" data-tip="选择 (V)" title="选择">
+                            <svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="currentColor" stroke="none"><path d="M1 1v12h2.5V8.2l4.2 6.2 1.5-.8-4.2-6.2H11V1z"/></svg>
+                        </button>
+                        <button type="button" class="side-toolbar-btn" id="sideToolWorkstation" data-tip="工位模式" title="工位模式">
+                            <svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V5a3 3 0 0 1 6 0v2M8.5 9v4M5 13h7a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2z"/></svg>
+                        </button>
+                        <button type="button" class="side-toolbar-btn" id="sideToolCircle" data-tip="圈人 (G)" title="圈人">
+                            <svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="5" height="5"/><rect x="10" y="2" width="5" height="5"/><rect x="2" y="10" width="5" height="5"/><rect x="10" y="10" width="5" height="5"/></svg>
+                        </button>
+                        <button type="button" class="side-toolbar-btn" id="sideToolAddNote" data-tip="添加备注" title="添加备注">
+                            <svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2L15 6L5 16H2v-3L11 2z"/><path d="M14 5L11 2"/></svg>
+                        </button>
+                        <button type="button" class="side-toolbar-btn" id="sideToolInfo" data-tip="信息点" title="信息点">
+                            <svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8.5" cy="8.5" r="6"/><path d="M8.5 7v4M8.5 5v1"/></svg>
+                        </button>
+                        <div class="side-toolbar-divider"></div>
+                        <button type="button" class="side-toolbar-btn" id="sideToolZoomOut" data-tip="缩小 (-)"><svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8.5h11"/></svg></button>
+                        <div class="side-toolbar-zoom-text" id="sideToolZoomText">100%</div>
+                        <button type="button" class="side-toolbar-btn" id="sideToolZoomIn" data-tip="放大 (+)"><svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 3v11M3 8.5h11"/></svg></button>
+                        <button type="button" class="side-toolbar-btn" id="sideToolToggle" data-tip="收起" title="收起"><svg class="side-toolbar-btn-icon" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="2"><path class="icon-collapse" d="M11 4l-4 4.5 4 4.5"/><path class="icon-expand" d="M6 4l4 4.5-4 4.5"/></svg></button>
+                    </div>
+                    <div class="side-toolbar-panel" id="sideToolbarInfoPanel" style="display: none;">
+                        <div class="side-toolbar-panel-title">信息点显示</div>
+                        <div class="side-toolbar-panel-row" data-type="active"><div class="side-toolbar-panel-dot" style="background:#2E9E6A"></div><div class="side-toolbar-panel-label"><div class="side-toolbar-panel-name">人员状态</div></div><div class="side-toolbar-toggle" style="--ic:#2E9E6A" data-type="active"><div class="side-toolbar-toggle-slider"></div></div></div>
+                        <div class="side-toolbar-panel-row" data-type="personTag"><div class="side-toolbar-panel-dot" style="background:#3B6FCC"></div><div class="side-toolbar-panel-label"><div class="side-toolbar-panel-name">人员标签</div></div><div class="side-toolbar-toggle" style="--ic:#3B6FCC" data-type="personTag"><div class="side-toolbar-toggle-slider"></div></div></div>
+                        <div class="side-toolbar-panel-row" data-type="noRaiseTwice"><div class="side-toolbar-panel-dot" style="background:#D94F2B"></div><div class="side-toolbar-panel-label"><div class="side-toolbar-panel-name">异常历史记录</div></div><div class="side-toolbar-toggle" style="--ic:#D94F2B" data-type="noRaiseTwice"><div class="side-toolbar-toggle-slider"></div></div></div>
+                        <div class="side-toolbar-panel-row" data-type="note"><div class="side-toolbar-panel-dot" style="background:#7352B2"></div><div class="side-toolbar-panel-label"><div class="side-toolbar-panel-name">批注</div></div><div class="side-toolbar-toggle" style="--ic:#7352B2" data-type="note"><div class="side-toolbar-toggle-slider"></div></div></div>
+                        <div class="side-toolbar-panel-row" data-type="hideAdjusted"><div class="side-toolbar-panel-dot" style="background:#8A8780"></div><div class="side-toolbar-panel-label"><div class="side-toolbar-panel-name">一键隐藏已调薪人员</div></div><div class="side-toolbar-toggle" data-type="hideAdjusted" id="sidePanelHideAdjusted"><div class="side-toolbar-toggle-slider"></div></div></div>
+                    </div>
+                    <div class="side-toolbar-panel" id="sideToolbarCirclePanel" style="display: none;">
+                        <div class="side-toolbar-panel-title">圈人分组</div>
+                        <div class="side-toolbar-group-item" id="sideToolbarCircleAll" style="cursor:pointer"><span>全部</span></div>
+                        <div id="sideToolbarCircleList"></div>
+                    </div>
+                </div>
+                
+                <!-- 表格视图 -->
+                <div id="tableView" class="table-view" style="display: none;">
+                    <!-- 表格 -->
+                    <div class="data-table">
+                        <div class="table-wrapper">
+                            <table id="employeeTable">
+                                <thead>
+                                    <tr id="tableHeadGroupRow"></tr>
+                                    <tr id="tableHeadFieldRow"></tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <!-- 通过JS动态生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 九宫格视图 -->
+                <div id="gridView" class="grid-view" style="display: none;">
+                    <div class="nine-grid-container" id="nineGrid">
+                        <!-- 通过JS动态生成 -->
+                    </div>
+                </div>
+                <!-- 工位模式蒙层（半透明磨砂 + 鼠标周围透光） -->
+                <div class="workstation-overlay" id="workstationOverlay" aria-hidden="true"></div>
+            </div>
+        </div>
+        
+        <!-- 右侧详情面板 -->
+        <div class="right-panel collapsed" id="rightPanel">
+            <div class="panel-header">
+                <h3 id="panelTitle">员工详情</h3>
+                <span class="panel-close" onclick="togglePanel()">✕</span>
+            </div>
+            <div class="panel-content" id="panelContent">
+                <div style="text-align: center; color: #999; padding: 60px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">👈</div>
+                    <div>点击员工卡片查看详情</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 人员信息抽屉（参照 cursor_workspace） -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-inner">
+            <!-- 左侧人员列表（仅待填报任务时显示） -->
+            <div class="drawer-person-list" id="drawerPersonList">
+                <div class="drawer-person-list-title">人员列表</div>
+                <div class="drawer-person-list-body" id="drawerPersonListBody"></div>
+            </div>
+            <!-- 右侧详情区 -->
+            <div class="drawer-main">
+        <div class="drawer-header">
+            <div class="drawer-title">
+                <button class="drawer-nav-btn drawer-nav-prev" id="drawerNavPrev" title="上一个">‹</button>
+                <button class="drawer-nav-btn drawer-nav-next" id="drawerNavNext" title="下一个">›</button>
+                <span class="drawer-name" id="drawerName">--</span>
+                <button class="ai-profile-btn" id="aiProfileBtn" title="AI 人员画像"><span class="ai-btn-icon">&#10024;</span><span class="ai-btn-text">AI画像</span></button>
+                <span class="drawer-dept" id="drawerDept">--</span>
+                <span class="drawer-tier-tag" id="drawerTierTag">--</span>
+            </div>
+            <div class="drawer-status-area" id="drawerStatusArea">
+                <span class="drawer-status-tag drawer-status-pending" id="drawerStatusTag">待处理</span>
+                <span class="drawer-deadline" id="drawerDeadline">截止：2026-04-15</span>
+            </div>
+            <button class="drawer-close" id="drawerClose">&times;</button>
+        </div>
+        <div class="drawer-tabs">
+            <button class="drawer-tab active" data-tab="basic">人员信息</button>
+            <button class="drawer-tab" data-tab="performance">绩效回顾</button>
+            <button class="drawer-tab" data-tab="rank">职级回顾</button>
+            <button class="drawer-tab" data-tab="salary">薪酬回顾</button>
+            <button class="drawer-tab" data-tab="annual">TTP提报</button>
+            <button class="drawer-tab" data-tab="interview">面谈反馈</button>
+        </div>
+        <div class="drawer-content">
+            <div class="tab-panel active" id="tab-basic">
+                <div class="panel-placeholder">
+                    <div class="info-grid">
+                        <div class="info-row"><span class="info-label">组织路径</span><span class="info-value info-value-wrap" id="info-orgPath">--</span></div>
+                        <div class="info-row"><span class="info-label">职业通道</span><span class="info-value info-value-wrap" id="info-careerPath">--</span></div>
+                        <div class="info-row"><span class="info-label">招聘类型</span><span class="info-value" id="info-recruitType">--</span></div>
+                        <div class="info-row"><span class="info-label">入职日期</span><span class="info-value" id="info-joinDate">--</span></div>
+                        <div class="info-row"><span class="info-label">转正日期</span><span class="info-value" id="info-confirmDate">--</span></div>
+                        <div class="info-row"><span class="info-label">司龄</span><span class="info-value" id="info-tenure">--</span></div>
+                        <div class="info-row"><span class="info-label">社会工龄</span><span class="info-value" id="info-workAge">--</span></div>
+                        <div class="info-row"><span class="info-label">考核汇报关系</span><span class="info-value" id="info-manager">--</span></div>
+                        <div class="info-row"><span class="info-label">工作国家-城市</span><span class="info-value" id="info-workCity">--</span></div>
+                    </div>
+                    <div class="task-section">
+                        <div class="task-section-title">绩效信息</div>
+                        <div class="perf-info-grid">
+                            <div class="perf-info-card">
+                                <div class="perf-info-header"><div class="perf-info-period" id="perfPeriod1">2025年上半年</div><a class="perf-info-link" href="javascript:void(0)">详情 &#8599;</a></div>
+                                <div class="perf-info-body"><span class="perf-info-label">绩效评价</span><span class="perf-info-level" id="perfLevel1">--</span></div>
+                                <div class="perf-info-content" id="perfContent1">--</div>
+                            </div>
+                            <div class="perf-info-card">
+                                <div class="perf-info-header"><div class="perf-info-period" id="perfPeriod2">2024年下半年</div><a class="perf-info-link" href="javascript:void(0)">详情 &#8599;</a></div>
+                                <div class="perf-info-body"><span class="perf-info-label">绩效评价</span><span class="perf-info-level" id="perfLevel2">--</span></div>
+                                <div class="perf-info-content" id="perfContent2">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="task-section goal-module">
+                        <div class="goal-header"><div class="goal-header-left"><span class="goal-header-title">目标</span><select class="goal-period-select"><option>2025年下半年</option><option>2025年上半年</option><option>2024年下半年</option></select></div><div class="goal-header-right"><a class="goal-detail-link" href="javascript:void(0)">详情</a><span class="goal-more">&#8942;</span></div></div>
+                        <div class="goal-list">
+                            <div class="goal-block">
+                                <div class="goal-item">
+                                    <div class="goal-item-main"><span class="goal-tag goal-tag-blue">目标1</span><span class="goal-desc">提升用户活跃度</span><div class="goal-meta"><span class="goal-weight">权重: 30%</span><span class="goal-status goal-status-progress">进行中</span><span class="goal-progress">进展 20%</span></div></div>
+                                    <div class="goal-delivery">交付标准说明... <a class="goal-expand" href="javascript:void(0)">展开 &#9660;</a></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="task-section">
+                        <div class="task-section-title">人员事项</div>
+                        <div class="task-card-grid" id="taskCardGrid">
+                            <div class="task-card"><div class="task-card-top"><span class="task-tag task-tag-purple">事项</span><span class="task-card-title">二级事项</span></div><div class="task-card-path">&#128196; 路径说明</div></div>
+                        </div>
+                        <div class="task-more-btn" id="taskMoreBtn">更多 &#9662;</div>
+                    </div>
+                    <div class="task-section basic-remark-area" id="basicRemarkArea">
+                        <div class="task-section-title">备注</div>
+                        <textarea class="basic-remark-textarea" id="basicRemarkText" placeholder="填写对此人员的备注"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-performance">
+                <div class="perf-form">
+                    <div class="perf-anchor-nav" id="perfAnchorNav">
+                        <a class="perf-anchor-item active" href="#sec-node" data-target="sec-node">节点回顾</a>
+                        <a class="perf-anchor-item" href="#sec-work" data-target="sec-work">工作内容</a>
+                        <a class="perf-anchor-item" href="#sec-org" data-target="sec-org">组织管理</a>
+                        <a class="perf-anchor-item" href="#sec-summary" data-target="sec-summary">工作内容总结&评定</a>
+                        <a class="perf-anchor-item" href="#sec-values" data-target="sec-values">价值观评价</a>
+                    </div>
+
+                    <div class="perf-section" id="sec-node">
+                        <h3 class="perf-section-title">节点回顾</h3>
+                        <div class="nr-card">
+                            <div class="nr-card-header">
+                                <span class="nr-version">4.2版本</span>
+                                <span class="nr-sep">|</span>
+                                <span class="nr-type">版本总结</span>
+                            </div>
+                            <div class="nr-card-body">
+                                <div class="nr-stage-row">
+                                    <span class="nr-stage-label">80%阶段回顾</span>
+                                    <span class="perf-tag-sm perf-tag-green">超出预期</span>
+                                </div>
+                                <div class="nr-leader-title">Leader评语</div>
+                                <ol class="nr-leader-list">
+                                    <li>佳峰这半年还有很大进步空间佳峰这半年还有很大进步空间佳峰这半年还有很大进步空间</li>
+                                    <li>佳峰这半年还有很大进步空间佳峰这半年还有很大进步空间</li>
+                                    <li>佳峰这半年还有很大进步空间佳峰这半年还有很大</li>
+                                </ol>
+                                <button class="nr-detail-btn">查看详情</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="perf-section" id="sec-work">
+                        <h3 class="perf-section-title">工作内容</h3>
+                        <div class="wk-project-label">大世界管线 / 5.2版本区域</div>
+                        <div class="wk-card">
+                            <div class="wk-card-body">
+                                <div class="wk-card-header">
+                                    <div class="wk-card-title">
+                                        <span class="wk-title-name">灰烬城</span>
+                                        <span class="wk-title-type">地块</span>
+                                    </div>
+                                    <div class="wk-card-owner">
+                                        <span class="wk-avatar-sm">王</span>
+                                        <span class="wk-owner-name">王瑷瑷</span>
+                                        <span class="perf-tag-sm perf-tag-blue">略超</span>
+                                    </div>
+                                </div>
+                                <div class="wk-poi-grid">
+                                    <div class="wk-poi-cell">
+                                        <div class="wk-poi-title">天空城 <span class="wk-poi-level">2级POI</span></div>
+                                        <div class="wk-poi-people">
+                                            <span class="wk-person-chip"><span class="wk-avatar-xs">刘</span> 刘佳峰 <span class="perf-tag-sm perf-tag-green">超出</span></span>
+                                            <span class="wk-person-chip"><span class="wk-avatar-xs">卢</span> 卢潇 <span class="perf-tag-sm perf-tag-blue">略超</span></span>
+                                        </div>
+                                        <div class="wk-poi-footer">
+                                            <span class="wk-expect-label">达到预期</span>
+                                            <span class="wk-avatars-row"><span class="wk-avatar-xs">&#128512;</span><span class="wk-avatar-xs">&#128512;</span></span>
+                                        </div>
+                                    </div>
+                                    <div class="wk-poi-cell">
+                                        <div class="wk-poi-title">养育间 <span class="wk-poi-level">2级POI</span></div>
+                                        <div class="wk-poi-people">
+                                            <span class="wk-person-chip"><span class="wk-avatar-xs">刘</span> 刘佳峰 <span class="perf-tag-sm perf-tag-green">超出</span></span>
+                                            <span class="wk-person-chip"><span class="wk-avatar-xs">卢</span> 卢潇 <span class="perf-tag-sm perf-tag-green">超出</span></span>
+                                        </div>
+                                        <div class="wk-poi-footer">
+                                            <span class="wk-expect-label">达到预期</span>
+                                            <span class="wk-avatars-row"><span class="wk-avatar-xs">&#128512;</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="wk-self-eval">
+                                    <div class="wk-self-eval-title">员工自评</div>
+                                    <div class="wk-self-eval-tag"><span class="perf-tag-orange">达到预期</span></div>
+                                    <div class="wk-self-eval-text">我觉得自己表现很不错我觉得自己表现很不错我觉得自己表现很不错</div>
+                                </div>
+                            </div>
+                            <div class="wk-card-leader">
+                                <div class="wk-leader-title">Leader评价</div>
+                                <div class="wk-leader-field">
+                                    <label class="wk-leader-label"><span class="wk-required">*</span> 事项评价</label>
+                                    <select class="perf-select"><option value="">请选择</option><option>超出</option><option>略超</option><option>达到</option><option>略低</option><option>低于</option></select>
+                                </div>
+                                <div class="wk-leader-field">
+                                    <label class="wk-leader-label">事项评价说明</label>
+                                    <textarea class="perf-textarea" placeholder="请描述亮点与不足"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="perf-section" id="sec-org">
+                        <h3 class="perf-section-title">组织管理</h3>
+                        <div class="wk-card">
+                            <div class="wk-card-body">
+                                <table class="org-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="org-col-target">目标</th>
+                                            <th class="org-col-result">产出结果</th>
+                                            <th class="org-col-reflect">自我总结与反思</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>提升团队整体专业度</td>
+                                            <td>团队专业度显著提升</td>
+                                            <td>我做的很好我做的很好</td>
+                                        </tr>
+                                        <tr>
+                                            <td>提升团队凝聚力</td>
+                                            <td>团队凝聚力显著提升</td>
+                                            <td>我做的很好</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="wk-card-leader">
+                                <div class="wk-leader-title">Leader评价</div>
+                                <div class="wk-leader-field">
+                                    <label class="wk-leader-label"><span class="wk-required">*</span> 评价等级</label>
+                                    <select class="perf-select"><option value="">请选择</option><option>超出</option><option>略超</option><option>达到</option><option>略低</option><option>低于</option></select>
+                                </div>
+                                <div class="wk-leader-field">
+                                    <label class="wk-leader-label">评价说明</label>
+                                    <textarea class="perf-textarea" placeholder="请描述亮点与不足"></textarea>
+                                </div>
+                            </div>
+                            <div class="wk-self-eval">
+                                <div class="wk-self-eval-title">组织管理综合评价</div>
+                                <div class="wk-self-eval-tag"><span class="perf-tag-orange">达到预期</span></div>
+                                <div class="wk-self-eval-text">我还做了这个这个那个那个</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="perf-section" id="sec-summary">
+                        <h3 class="perf-section-title">工作内容总结&评定</h3>
+                        <div class="wk-card">
+                            <div class="wk-card-body">
+                                <div class="wk-eval-inner">
+                                    <div class="wk-eval-field-label">综合自评等级</div>
+                                    <div class="wk-self-eval-tag" style="margin-bottom:18px"><span class="perf-tag-orange">达到预期</span></div>
+                                    <div class="wk-eval-field-label">综合自评说明</div>
+                                    <div class="wk-self-eval-text">我觉得自己做的不错我觉得自己做的不错我觉得自己做的不错</div>
+                                </div>
+                            </div>
+                            <div class="wk-card-leader">
+                                <div class="wk-leader-title">Leader评价</div>
+                                <div class="wk-leader-field">
+                                    <label class="wk-leader-label"><span class="wk-required">*</span> 综合评价等级</label>
+                                    <select class="perf-select" id="perfSummaryLeaderSelect"><option value="">请选择</option><option value="超出">超出</option><option value="略超">略超</option><option value="达到">达到</option><option value="略低">略低</option><option value="低于">低于</option></select>
+                                </div>
+                                <div class="wk-leader-field">
+                                    <label class="wk-leader-label">综合评价说明</label>
+                                    <textarea class="perf-textarea" placeholder="请描述亮点与不足"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="perf-section" id="sec-values">
+                        <h3 class="perf-section-title">价值观评价</h3>
+                        <div class="val-dims-row">
+                            <div class="val-dim-item"><span class="val-dim-label">说到做到 <span class="val-dim-tip">&#9432;</span></span><span class="val-dim-tag val-dim-tag-default">基本符合</span></div>
+                            <div class="val-dim-item"><span class="val-dim-label">有话直说 <span class="val-dim-tip">&#9432;</span></span><span class="val-dim-tag val-dim-tag-good">完全符合</span></div>
+                            <div class="val-dim-item"><span class="val-dim-label">只认功劳 <span class="val-dim-tip">&#9432;</span></span><span class="val-dim-tag val-dim-tag-good">完全符合</span></div>
+                            <div class="val-dim-item"><span class="val-dim-label">追求极致 <span class="val-dim-tip">&#9432;</span></span><span class="val-dim-tag val-dim-tag-default">基本符合</span></div>
+                            <div class="val-dim-item"><span class="val-dim-label">日常行为自查 <span class="val-dim-tip">&#9432;</span></span><span class="val-dim-tag val-dim-tag-default">基本符合</span></div>
+                            <div class="val-dim-item"><span class="val-dim-label">价值观综合 <span class="val-dim-tip">&#9432;</span></span><span class="val-dim-tag val-dim-tag-primary">基本符合</span></div>
+                        </div>
+                        <div class="val-summary">
+                            <div class="val-summary-label">价值观综合评定</div>
+                            <div class="val-summary-text">我觉得自己做的不错我觉得自己做的不错我觉得自己做的不错</div>
+                        </div>
+                        <div class="val-dims-row val-dims-selects">
+                            <div class="val-dim-item"><span class="val-dim-label"><span class="wk-required">*</span> 说到做到</span><select class="perf-select"><option value="">请选择</option><option>完全符合</option><option>基本符合</option><option>有待提升</option><option>不符合</option></select></div>
+                            <div class="val-dim-item"><span class="val-dim-label"><span class="wk-required">*</span> 有话直说</span><select class="perf-select"><option value="">请选择</option><option>完全符合</option><option>基本符合</option><option>有待提升</option><option>不符合</option></select></div>
+                            <div class="val-dim-item"><span class="val-dim-label"><span class="wk-required">*</span> 只认功劳</span><select class="perf-select"><option value="">请选择</option><option>完全符合</option><option>基本符合</option><option>有待提升</option><option>不符合</option></select></div>
+                            <div class="val-dim-item"><span class="val-dim-label"><span class="wk-required">*</span> 追求极致</span><select class="perf-select"><option value="">请选择</option><option>完全符合</option><option>基本符合</option><option>有待提升</option><option>不符合</option></select></div>
+                            <div class="val-dim-item"><span class="val-dim-label"><span class="wk-required">*</span> 日常行为自查</span><select class="perf-select"><option value="">请选择</option><option>完全符合</option><option>基本符合</option><option>有待提升</option><option>不符合</option></select></div>
+                            <div class="val-dim-item"><span class="val-dim-label"><span class="wk-required">*</span> 价值观综合</span><select class="perf-select"><option value="">请选择</option><option>完全符合</option><option>基本符合</option><option>有待提升</option><option>不符合</option></select></div>
+                        </div>
+                        <div class="val-eval-textarea">
+                            <div class="val-summary-label">价值观综合评定 <span class="val-dim-tip">&#9432;</span></div>
+                            <textarea class="perf-textarea" placeholder="请输入综合自评说明"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="rank-form-footer">
+                        <span class="rank-autosave">15:31 已自动保存</span>
+                        <button class="btn btn-primary rank-save-btn" id="perfSave">保存</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-rank">
+                <div class="rank-form">
+                    <div class="rank-info-card">
+                        <div class="rank-info-grid">
+                            <div class="rank-info-item">
+                                <div class="rank-info-label">当前职级</div>
+                                <div class="rank-info-value">3-1</div>
+                            </div>
+                            <div class="rank-info-item">
+                                <div class="rank-info-label">当前职级生效时间</div>
+                                <div class="rank-info-value">2025-02-23</div>
+                            </div>
+                            <div class="rank-info-item">
+                                <div class="rank-info-label">通道评审职级线</div>
+                                <div class="rank-info-value">3-2</div>
+                            </div>
+                        </div>
+                        <div class="rank-info-grid">
+                            <div class="rank-info-item">
+                                <div class="rank-info-label">当前职级停留时长</div>
+                                <div class="rank-info-value">2年9个月</div>
+                            </div>
+                            <div class="rank-info-item">
+                                <div class="rank-info-label">自上次SR变化</div>
+                                <div class="rank-info-value">3-2 → 4-2 <span class="rank-sr-change rank-sr-up">(上调 2 级)</span></div>
+                            </div>
+                            <div class="rank-info-item">
+                                <div class="rank-info-label">职级标准</div>
+                                <div class="rank-info-value"><a class="rank-link" href="javascript:void(0)">查看详情</a></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rank-submit-section">
+                        <div class="rank-submit-title">
+                            <span class="rank-submit-bar"></span>
+                            <span class="rank-submit-text">职级提报</span>
+                        </div>
+                        <div class="rank-adjust-track">
+                            <div class="rank-adjust-step">
+                                <span class="rank-step-btn" id="rankDownBtn">下调一级</span>
+                            </div>
+                            <div class="rank-adjust-step">
+                                <span class="rank-step-current" id="rankCurrentLevel">3-1</span>
+                            </div>
+                            <div class="rank-adjust-arrow">&#10132;</div>
+                            <div class="rank-adjust-step rank-adjust-step-active" id="rankTargetStep">
+                                <span class="rank-step-target" id="rankTargetLevel">3-1 (不调整)</span>
+                            </div>
+                            <div class="rank-adjust-step">
+                                <span class="rank-step-btn" id="rankUpBtn">上调一级</span>
+                            </div>
+                        </div>
+                        <div class="rank-reason">
+                            <label class="rank-reason-label"><span class="wk-required">*</span> 提报理由</label>
+                            <div class="rank-reason-wrap">
+                                <textarea class="rank-reason-textarea" id="rankReasonText" maxlength="5000" placeholder="从试用期工作表现来看是否存在职级高估或者低估的情况，是否存在能力明显提升，重点说明做了哪些事情，对应验证了哪些模块的能力"></textarea>
+                                <div class="rank-reason-count"><span id="rankReasonCount">0</span>/5000</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rank-review-section">
+                        <h4 class="rank-section-title">近期职级回顾</h4>
+                        <table class="rank-table">
+                            <thead>
+                                <tr>
+                                    <th>回顾节点</th>
+                                    <th>最终职级</th>
+                                    <th>调级类型</th>
+                                    <th>提报前职级</th>
+                                    <th>提报职级</th>
+                                    <th>提报理由</th>
+                                    <th>通道评审评价</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2022H2</td>
+                                    <td>3-1</td>
+                                    <td>上调一级</td>
+                                    <td>2-2</td>
+                                    <td>3-2</td>
+                                    <td class="rank-td-ellipsis">这是提报理由这是提...</td>
+                                    <td class="rank-td-ellipsis">这是评审评价这是评...</td>
+                                </tr>
+                                <tr>
+                                    <td>2022H1</td>
+                                    <td>2-2</td>
+                                    <td>不调整</td>
+                                    <td>2-2</td>
+                                    <td>3-2</td>
+                                    <td class="rank-td-ellipsis">这是提报理由这是提...</td>
+                                    <td class="rank-td-ellipsis">这是评审评价这是评...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="rank-history-section">
+                        <h4 class="rank-section-title">历史职级记录</h4>
+                        <table class="rank-table">
+                            <thead>
+                                <tr>
+                                    <th>生效日期</th>
+                                    <th>职级/能力分层</th>
+                                    <th>调整原因</th>
+                                    <th>调整理由</th>
+                                    <th>通道评审评价</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2022-02-02</td>
+                                    <td>3-1</td>
+                                    <td>职级回顾</td>
+                                    <td class="rank-td-ellipsis">这是调整理由这是调整理由这是调...</td>
+                                    <td class="rank-td-ellipsis">这是评审评价这是评审评价这是评...</td>
+                                </tr>
+                                <tr>
+                                    <td>2022-02-02</td>
+                                    <td>3-1</td>
+                                    <td>职级回顾</td>
+                                    <td class="rank-td-ellipsis">这是调整理由这是调整理由这是调...</td>
+                                    <td class="rank-td-ellipsis">这是评审评价这是评审评价这是评...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="rank-form-footer">
+                        <span class="rank-autosave">15:31 已自动保存</span>
+                        <button class="btn btn-primary rank-save-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-salary">
+                <div class="sal-form">
+                    <div class="sal-ref-area">
+                        <div class="sal-section">
+                            <div class="sal-section-header">
+                                <span class="sal-icon">&#128202;</span>
+                                <span class="sal-section-title">参考信息</span>
+                            </div>
+                            <div class="sal-kv-grid sal-kv-grid-3col">
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">参加历史</div>
+                                    <div class="sal-kv-value" style="font-size:13px">过去2次薪酬回顾都参加了</div>
+                                </div>
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">现薪酬</div>
+                                    <div class="sal-kv-value" id="salCurrent">--</div>
+                                    <div class="sal-kv-sub">参考CNY --</div>
+                                </div>
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">调前基础总年薪</div>
+                                    <div class="sal-kv-value">--</div>
+                                    <div class="sal-kv-sub">参考CNY --</div>
+                                </div>
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">预测TTP</div>
+                                    <div class="sal-kv-value">--</div>
+                                    <div class="sal-kv-sub">参考CNY --</div>
+                                </div>
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">预测TTP涨幅</div>
+                                    <div class="sal-kv-value sal-kv-highlight">--</div>
+                                </div>
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">超出约定月数</div>
+                                    <div class="sal-kv-value">--</div>
+                                </div>
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">上年度TTP/调前base</div>
+                                    <div class="sal-kv-value">--</div>
+                                </div>
+                                <div class="sal-kv-item">
+                                    <div class="sal-kv-label">上年度TTP/调后base</div>
+                                    <div class="sal-kv-value" id="salTtpAfterBase">--</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sal-submit-area">
+                            <div class="sal-submit-header">
+                                <span class="sal-icon">&#9997;</span>
+                                <span class="sal-submit-title-text">薪酬提报</span>
+                                <div class="alert-tags-area" id="salAlertTags"></div>
+                            </div>
+                            <div class="sal-submit-edit-row">
+                                <div class="sal-submit-edit-item">
+                                    <label class="sal-field-label"><span class="wk-required">*</span> 本期调整额</label>
+                                    <div class="sal-input-row">
+                                        <span class="sal-input-prefix">¥</span>
+                                        <input type="number" class="sal-input" id="salAdjustAmount" value="0" step="1000">
+                                    </div>
+                                    <div class="sal-input-sub">折合 <span id="salAdjustCny">CNY 0</span></div>
+                                </div>
+                                <div class="sal-submit-edit-item">
+                                    <label class="sal-field-label"><span class="wk-required">*</span> 涨幅</label>
+                                    <div class="sal-input-row">
+                                        <input type="number" class="sal-input" id="salRaisePercent" value="0" step="0.1">
+                                        <span class="sal-input-suffix">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sal-submit-result-row">
+                                <div class="sal-result-card">
+                                    <div class="sal-result-label">调整后金额</div>
+                                    <div class="sal-result-value" id="salAfterAmount">--</div>
+                                    <div class="sal-result-sub" id="salAfterCny">参考CNY --</div>
+                                </div>
+                                <div class="sal-result-card">
+                                    <div class="sal-result-label">调后基础总年薪</div>
+                                    <div class="sal-result-value" id="salAfterAnnual">--</div>
+                                    <div class="sal-result-sub" id="salAfterAnnualCny">参考CNY --</div>
+                                </div>
+                                <div class="sal-result-card sal-result-card-accent">
+                                    <div class="sal-result-label">调后与上年TTP涨幅</div>
+                                    <div class="sal-result-value sal-result-highlight" id="salTtpRaise">--</div>
+                                </div>
+                            </div>
+                            <div class="sal-reason-area" id="salReasonArea">
+                                <label class="sal-field-label"><span class="wk-required">*</span> 薪酬填报理由</label>
+                                <textarea class="sal-reason-textarea" id="salReasonText" placeholder="请填写调薪理由"></textarea>
+                            </div>
+                        </div>
+                        <div class="sal-section">
+                            <div class="sal-section-header">
+                                <span class="sal-icon">&#128196;</span>
+                                <span class="sal-section-title">Offer信息</span>
+                            </div>
+                            <table class="sal-compact-table">
+                                <thead>
+                                    <tr>
+                                        <th>项目</th>
+                                        <th>原币种</th>
+                                        <th>参考CNY</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="sal-ct-name">特殊Offer内容</td>
+                                        <td colspan="2" class="sal-ct-desc">无特殊Offer</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="sal-section">
+                            <div class="sal-section-header">
+                                <span class="sal-icon">&#128197;</span>
+                                <span class="sal-section-title">历史调薪</span>
+                            </div>
+                            <table class="sal-compact-table">
+                                <thead>
+                                    <tr>
+                                        <th>调薪阶段</th>
+                                        <th>日期</th>
+                                        <th>原币种</th>
+                                        <th>参考CNY</th>
+                                        <th>备注</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="sal-ct-name">最近一次调薪</td>
+                                        <td>--</td>
+                                        <td class="sal-ct-amount">--</td>
+                                        <td class="sal-ct-cny">--</td>
+                                        <td class="sal-ct-muted">--</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="sal-section">
+                            <div class="sal-section-header">
+                                <span class="sal-icon">&#128200;</span>
+                                <span class="sal-section-title">历史TTP</span>
+                            </div>
+                            <table class="sal-compact-table">
+                                <thead>
+                                    <tr>
+                                        <th>年度</th>
+                                        <th>TTP（原币种）</th>
+                                        <th>参考CNY</th>
+                                        <th>涨幅</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="sal-ct-name">上年度</td>
+                                        <td class="sal-ct-amount">--</td>
+                                        <td class="sal-ct-cny">--</td>
+                                        <td class="sal-ct-highlight">--</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="rank-form-footer">
+                        <span class="rank-autosave">15:31 已自动保存</span>
+                        <button class="btn btn-primary rank-save-btn" id="salSave">保存</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-annual">
+                <div class="sal-form">
+                    <div class="sal-section">
+                        <div class="sal-section-header">
+                            <span class="sal-icon">&#128202;</span>
+                            <span class="sal-section-title">汇总信息</span>
+                        </div>
+                        <div class="sal-kv-grid sal-kv-grid-3col">
+                            <div class="sal-kv-item">
+                                <div class="sal-kv-label">基础总年薪</div>
+                                <div class="sal-kv-value">--</div>
+                                <div class="sal-kv-sub">参考CNY --</div>
+                            </div>
+                            <div class="sal-kv-item">
+                                <div class="sal-kv-label">12个月基本月薪总额</div>
+                                <div class="sal-kv-value">--</div>
+                                <div class="sal-kv-sub">参考CNY --</div>
+                            </div>
+                            <div class="sal-kv-item">
+                                <div class="sal-kv-label">已发月薪合计</div>
+                                <div class="sal-kv-value">--</div>
+                                <div class="sal-kv-sub">参考CNY --</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sal-submit-area">
+                        <div class="sal-submit-header">
+                            <span class="sal-icon">&#128200;</span>
+                            <span class="sal-submit-title-text">年薪提报</span>
+                            <div class="alert-tags-area" id="annAlertTags"></div>
+                        </div>
+                        <div class="ann-submit-grid">
+                            <div class="ann-submit-field">
+                                <label class="sal-field-label">TTP提报额 <span class="wk-required">*</span></label>
+                                <div class="sal-input-row">
+                                    <span class="sal-input-prefix">¥</span>
+                                    <input type="number" class="sal-input" id="annTtpAmount" value="0" step="10000">
+                                </div>
+                                <div class="sal-input-sub">折合 <span id="annTtpCny">CNY 0</span></div>
+                            </div>
+                            <div class="ann-submit-field">
+                                <label class="sal-field-label">税前奖金 <span class="wk-required">*</span></label>
+                                <div class="sal-input-row">
+                                    <span class="sal-input-prefix">¥</span>
+                                    <input type="number" class="sal-input" id="annBonusAmount" value="0" step="10000">
+                                </div>
+                                <div class="sal-input-sub">折合 <span id="annBonusCny">CNY 0</span></div>
+                            </div>
+                            <div class="ann-submit-field">
+                                <label class="sal-field-label">奖金月数 <span class="wk-required">*</span></label>
+                                <div class="sal-input-row">
+                                    <input type="number" class="sal-input" id="annBonusMonths" value="1.0" step="0.1">
+                                    <span class="sal-input-suffix">月</span>
+                                </div>
+                            </div>
+                            <div class="ann-submit-field">
+                                <label class="sal-field-label">TTP涨幅 <span class="wk-required">*</span></label>
+                                <div class="sal-input-row">
+                                    <input type="number" class="sal-input" id="annTtpRaise" value="0" step="0.1">
+                                    <span class="sal-input-suffix">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sal-section">
+                        <div class="sal-section-header">
+                            <span class="sal-icon">&#128196;</span>
+                            <span class="sal-section-title">Offer信息</span>
+                        </div>
+                        <table class="sal-compact-table">
+                            <thead>
+                                <tr>
+                                    <th>项目</th>
+                                    <th>原币种</th>
+                                    <th>参考CNY</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="sal-ct-name" colspan="3" style="border-left:3px solid #4080ff;font-weight:600">特殊Offer内容：--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="sal-section">
+                        <div class="sal-section-header">
+                            <span class="sal-icon">&#128200;</span>
+                            <span class="sal-section-title">上年度TTP</span>
+                        </div>
+                        <table class="sal-compact-table">
+                            <thead>
+                                <tr>
+                                    <th>项目</th>
+                                    <th>原币种</th>
+                                    <th>参考CNY</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="sal-ct-name ann-row-bold">TTP</td>
+                                    <td class="sal-ct-amount ann-row-bold">--</td>
+                                    <td class="sal-ct-amount ann-row-bold">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="sal-ct-name">税前奖金</td>
+                                    <td class="sal-ct-amount">--</td>
+                                    <td class="sal-ct-cny">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="sal-ct-name">基本月薪</td>
+                                    <td class="sal-ct-amount">--</td>
+                                    <td class="sal-ct-cny">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="sal-section">
+                        <div class="sal-section-header">
+                            <span class="sal-icon">&#128200;</span>
+                            <span class="sal-section-title">上上年度TTP</span>
+                        </div>
+                        <table class="sal-compact-table">
+                            <thead>
+                                <tr>
+                                    <th>项目</th>
+                                    <th>原币种</th>
+                                    <th>参考CNY</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="sal-ct-name ann-row-bold">TTP</td>
+                                    <td class="sal-ct-amount ann-row-bold">--</td>
+                                    <td class="sal-ct-amount ann-row-bold">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="sal-ct-name">税前奖金</td>
+                                    <td class="sal-ct-amount">--</td>
+                                    <td class="sal-ct-cny">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="sal-ct-name">基本月薪</td>
+                                    <td class="sal-ct-amount">--</td>
+                                    <td class="sal-ct-cny">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="rank-form-footer">
+                        <span class="rank-autosave">15:31 已自动保存</span>
+                        <button class="btn btn-primary rank-save-btn" id="annSave">保存</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-interview">
+                <div class="itv-form">
+                    <div class="itv-tab-bar">
+                        <div class="itv-tab-item itv-tab-active" data-itv="perf">绩效面谈</div>
+                        <div class="itv-tab-item" data-itv="salary">薪酬面谈</div>
+                    </div>
+                    <!-- 绩效面谈 -->
+                    <div class="itv-panel itv-panel-active" id="itvPerf">
+                        <div class="itv-section">
+                            <div class="itv-section-title"><span class="itv-title-bar"></span>面谈问题</div>
+                            <div class="itv-hint-box">面谈问题仅做Leader绩效面谈时记录使用，员工不可见</div>
+                            <div class="itv-field">
+                                <label class="itv-field-label"><span class="wk-required">*</span> 面谈状态</label>
+                                <div class="itv-radio-group" id="perfItvStatus">
+                                    <label class="itv-radio-label"><input type="radio" name="perfItvStatus" value="ok" checked> 无问题</label>
+                                    <label class="itv-radio-label"><input type="radio" name="perfItvStatus" value="resolved"> 有问题 (已解决)</label>
+                                    <label class="itv-radio-label"><input type="radio" name="perfItvStatus" value="unresolved"> 有问题 (未解决)</label>
+                                </div>
+                            </div>
+                            <div class="itv-field itv-conditional" id="perfItvRecordWrap" style="display:none">
+                                <label class="itv-field-label"><span class="wk-required">*</span> 问题记录</label>
+                                <div class="itv-textarea-wrap">
+                                    <textarea class="itv-textarea" id="perfItvRecord" placeholder="请输入" maxlength="5000"></textarea>
+                                    <span class="itv-textarea-count"><span id="perfItvRecordCount">0</span>/5000</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="itv-section">
+                            <div class="itv-section-title"><span class="itv-title-bar"></span>员工 To-Do List</div>
+                            <div class="itv-hint-box">通过绩效面谈，可在此记录你与组员已达成一致的工作目标。员工可在miwe个人档案中查看</div>
+                            <table class="itv-todo-table" id="perfTodoTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:46px">序号</th>
+                                        <th>工作事项/目标</th>
+                                        <th>交付标准</th>
+                                        <th>权重/优先级</th>
+                                        <th style="width:56px">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="perfTodoBody">
+                                    <tr>
+                                        <td>1</td>
+                                        <td><input type="text" class="itv-table-input" placeholder="请输入"></td>
+                                        <td><input type="text" class="itv-table-input" placeholder="请输入"></td>
+                                        <td><input type="text" class="itv-table-input" placeholder="请输入"></td>
+                                        <td><button class="itv-del-btn" data-action="delRow">删除</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="itv-add-row" id="perfTodoAdd">+ 新增一项</div>
+                        </div>
+                        <div class="itv-section">
+                            <div class="itv-section-title"><span class="itv-title-bar"></span>后续跟进事项</div>
+                            <div class="itv-hint-box">面谈结束后，可在此记录你对该员工的跟进事项，你可在FM跟进面板中查看，员工不可见</div>
+                            <div class="itv-field">
+                                <label class="itv-field-label"><span class="wk-required">*</span> 对该员工是否有后续跟进事项</label>
+                                <div class="itv-radio-group" id="perfFollowUp">
+                                    <label class="itv-radio-label"><input type="radio" name="perfFollowUp" value="no" checked> 没有</label>
+                                    <label class="itv-radio-label"><input type="radio" name="perfFollowUp" value="yes"> 有</label>
+                                </div>
+                            </div>
+                            <div class="itv-conditional" id="perfFollowUpWrap" style="display:none">
+                                <div class="itv-field">
+                                    <label class="itv-field-label"><span class="wk-required">*</span> 跟进事项截止时间</label>
+                                    <div class="itv-date-wrap">
+                                        <input type="date" class="itv-date-input" id="perfFollowDate" placeholder="请选择">
+                                    </div>
+                                </div>
+                                <div class="itv-field">
+                                    <label class="itv-field-label"><span class="wk-required">*</span> 我的跟进事项</label>
+                                    <div class="itv-textarea-wrap">
+                                        <textarea class="itv-textarea" id="perfFollowText" placeholder="请输入" maxlength="5000"></textarea>
+                                        <span class="itv-textarea-count"><span id="perfFollowCount">0</span>/5000</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rank-form-footer">
+                            <span class="rank-autosave">15:31 已自动保存</span>
+                            <button class="btn btn-primary rank-save-btn" id="perfItvSave">保存</button>
+                        </div>
+                    </div>
+                    <!-- 薪酬面谈 -->
+                    <div class="itv-panel" id="itvSalary" style="display:none">
+                        <div class="itv-section">
+                            <div class="itv-section-title"><span class="itv-title-bar"></span>面谈问题</div>
+                            <div class="itv-hint-box">面谈问题仅做Leader绩效面谈时记录使用，员工不可见</div>
+                            <div class="itv-field">
+                                <label class="itv-field-label"><span class="wk-required">*</span> 面谈状态</label>
+                                <div class="itv-radio-group" id="salItvStatus">
+                                    <label class="itv-radio-label"><input type="radio" name="salItvStatus" value="ok" checked> 无问题</label>
+                                    <label class="itv-radio-label"><input type="radio" name="salItvStatus" value="resolved"> 有问题 (已解决)</label>
+                                    <label class="itv-radio-label"><input type="radio" name="salItvStatus" value="unresolved"> 有问题 (未解决)</label>
+                                </div>
+                            </div>
+                            <div class="itv-field itv-conditional" id="salItvRecordWrap" style="display:none">
+                                <label class="itv-field-label"><span class="wk-required">*</span> 问题记录</label>
+                                <div class="itv-textarea-wrap">
+                                    <textarea class="itv-textarea" id="salItvRecord" placeholder="请输入" maxlength="5000"></textarea>
+                                    <span class="itv-textarea-count"><span id="salItvRecordCount">0</span>/5000</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="itv-section">
+                            <div class="itv-section-title"><span class="itv-title-bar"></span>员工 To-Do List</div>
+                            <div class="itv-hint-box">通过绩效面谈，可在此记录你与组员已达成一致的工作目标。员工可在miwe个人档案中查看</div>
+                            <table class="itv-todo-table" id="salTodoTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:46px">序号</th>
+                                        <th>工作事项/目标</th>
+                                        <th>交付标准</th>
+                                        <th>权重/优先级</th>
+                                        <th style="width:56px">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salTodoBody">
+                                    <tr>
+                                        <td>1</td>
+                                        <td><input type="text" class="itv-table-input" placeholder="请输入"></td>
+                                        <td><input type="text" class="itv-table-input" placeholder="请输入"></td>
+                                        <td><input type="text" class="itv-table-input" placeholder="请输入"></td>
+                                        <td><button class="itv-del-btn" data-action="delRow">删除</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="itv-add-row" id="salTodoAdd">+ 新增一项</div>
+                        </div>
+                        <div class="itv-section">
+                            <div class="itv-section-title"><span class="itv-title-bar"></span>后续跟进事项</div>
+                            <div class="itv-hint-box">面谈结束后，可在此记录你对该员工的跟进事项，你可在FM跟进面板中查看，员工不可见</div>
+                            <div class="itv-field">
+                                <label class="itv-field-label"><span class="wk-required">*</span> 对该员工是否有后续跟进事项</label>
+                                <div class="itv-radio-group" id="salFollowUp">
+                                    <label class="itv-radio-label"><input type="radio" name="salFollowUp" value="no" checked> 没有</label>
+                                    <label class="itv-radio-label"><input type="radio" name="salFollowUp" value="yes"> 有</label>
+                                </div>
+                            </div>
+                            <div class="itv-conditional" id="salFollowUpWrap" style="display:none">
+                                <div class="itv-field">
+                                    <label class="itv-field-label"><span class="wk-required">*</span> 跟进事项截止时间</label>
+                                    <div class="itv-date-wrap">
+                                        <input type="date" class="itv-date-input" id="salFollowDate" placeholder="请选择">
+                                    </div>
+                                </div>
+                                <div class="itv-field">
+                                    <label class="itv-field-label"><span class="wk-required">*</span> 我的跟进事项</label>
+                                    <div class="itv-textarea-wrap">
+                                        <textarea class="itv-textarea" id="salFollowText" placeholder="请输入" maxlength="5000"></textarea>
+                                        <span class="itv-textarea-count"><span id="salFollowCount">0</span>/5000</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rank-form-footer">
+                            <span class="rank-autosave">15:31 已自动保存</span>
+                            <button class="btn btn-primary rank-save-btn" id="salItvSave">保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    <div class="scatter-card-anomaly-tooltip" id="anomalyTooltip"></div>
+    <div class="anomaly-slide-out" id="anomalySlideOut"></div>
+    <div class="reason-slide-out" id="reasonSlideOut"></div>
+    
+    <div class="compare-panel hidden" id="comparePanel">
+        <div class="compare-panel-header">已选人员对比</div>
+        <div class="compare-panel-body">
+            <table><thead><tr id="comparePanelThead"></tr></thead><tbody id="comparePanelBody"></tbody></table>
+            <div class="compare-ai-section" id="comparePanelAI"></div>
+        </div>
+    </div>
+    
+    <div class="toast-overlay" id="submitToast">
+        <div class="toast-panel">
+            <div class="toast-header">
+                <h3>薪酬方案明细</h3>
+                <button class="tool-btn" onclick="closeSubmitToast()">关闭</button>
+            </div>
+            <div class="toast-body">
+                <table class="toast-table" id="submitToastTable">
+                    <thead><tr id="submitToastThead"></tr></thead>
+                    <tbody id="submitToastBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS 模块（顺序重要：数据层 → 工具 → 功能模块 → 初始化） -->
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/person-card.js"></script>
+    <script src="js/filter.js"></script>
+    <script src="js/toolbar.js"></script>
+    <script src="js/circle.js"></script>
+    <script src="js/drag.js"></script>
+    <script src="js/scatter.js"></script>
+    <script src="js/table-grid.js"></script>
+    <script src="js/detail.js"></script>
+    <script src="js/task.js"></script>
+    <script src="js/approval.js"></script>
+    <script src="js/bot/botState.js"></script>
+    <script src="js/bot/intentRecognizer.js"></script>
+    <script src="js/bot/mockData.js"></script>
+    <script src="js/bot/actionAgent.js"></script>
+    <script src="js/bot/uiRenderAgent.js"></script>
+    <script src="js/bot/stateAgent.js"></script>
+    <script src="js/bot/orchestratorAgent.js"></script>
+    <script src="js/ai-assistant.js"></script>
+    <script src="js/demo-tabs.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

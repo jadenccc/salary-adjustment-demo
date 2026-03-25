@@ -1,0 +1,145 @@
+/* === base.css === 基础样式（reset、body、通用组件） */
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+}
+
+/* 通用 chip 组件 */
+.chip {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    color: var(--text);
+}
+
+.chip:hover {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+    color: var(--primary);
+}
+
+.chip.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.chip-with-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.chip-close {
+    margin-left: 2px;
+    padding: 0 2px;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 2px;
+}
+.chip-close:hover {
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.08);
+}
+
+/* action-buttons */
+.action-buttons {
+    padding: 20px;
+    border-top: 1px solid var(--border-light);
+}
+
+
+/* 通用按钮 */
+.btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-secondary:hover {
+    background: var(--primary-bg);
+}
+
+/* tag-badge 系列 */
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+    margin-bottom: 6px;
+}
+
+.tag-star {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.tag-potential {
+    background: var(--primary-bg);
+    color: var(--primary);
+}
+
+.tag-tier {
+    background: var(--primary-bg);
+    color: var(--primary);
+}
+
+/* 加载动画 */
+/* 加载动画 */
+.loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-muted);
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-light);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

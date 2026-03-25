@@ -1,0 +1,26 @@
+/* === variables.css === CSS变量定义 */
+
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-light: #3b82f6;
+    --primary-bg: #eff6ff;
+    --surface: #ffffff;
+    --bg: #f8fafc;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(37, 99, 235, 0.08);
+    --radius: 8px;
+    --radius-sm: 6px;
+}
+
+/* 信息点颜色变量 */
+:root {
+    --c-active: #2E9E6A;
+    --c-personTag: #3B6FCC;
+    --c-noRaiseTwice: #D94F2B;
+    --c-note: #7352B2;
+}

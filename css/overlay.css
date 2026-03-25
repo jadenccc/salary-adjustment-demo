@@ -1,0 +1,313 @@
+/* === overlay.css === 浮层（Toast、对比面板、Tooltip、异常提示等） */
+
+/* 工位模式蒙层：半透明磨砂，以鼠标为圆心透光 ~2 个人员卡片宽度 */
+.workstation-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 120;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    --spotlight-r: 140px;  /* ~2 个人员卡片宽度 (128~160px) */
+    --mx: 50%;
+    --my: 50%;
+}
+.workstation-overlay.active {
+    display: block;
+    /* 圆心透明（透光），圆外不透明（显示磨砂蒙层） */
+    -webkit-mask-image: radial-gradient(
+        circle var(--spotlight-r) at var(--mx) var(--my),
+        transparent 0,
+        transparent var(--spotlight-r),
+        black var(--spotlight-r)
+    );
+    mask-image: radial-gradient(
+        circle var(--spotlight-r) at var(--mx) var(--my),
+        transparent 0,
+        transparent var(--spotlight-r),
+        black var(--spotlight-r)
+    );
+}
+
+/* 对比面板 */
+.compare-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 440px;
+    max-height: 380px;
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 1500;
+}
+
+.compare-panel.hidden {
+    display: none;
+}
+
+.compare-panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.compare-panel-body {
+    overflow: auto;
+    flex: 1;
+}
+
+.compare-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.compare-panel th {
+    background: var(--bg);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.compare-panel td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text);
+}
+
+.compare-ai-section {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-light);
+    background: var(--primary-bg);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text);
+}
+
+.compare-ai-section h4 {
+    font-size: 12px;
+    color: var(--primary);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.compare-ai-item {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--primary);
+}
+
+.compare-ai-item:last-child {
+    margin-bottom: 0;
+}
+
+.scatter-card.circle-selected {
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-bg);
+}
+
+/* 工具提示 */
+/* 工具提示 */
+.tooltip {
+    position: fixed;
+    background: var(--text);
+    color: white;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+}
+
+/* 提交方案 Toast */
+/* 提交方案 Toast */
+.toast-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-overlay.show {
+    display: flex;
+}
+
+.toast-panel {
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.12);
+    border: 1px solid var(--border);
+    max-width: 90vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.toast-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toast-header h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.toast-body {
+    overflow: auto;
+    padding: 0;
+}
+
+.toast-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.toast-table th {
+    background: var(--bg);
+    padding: 10px 12px;
+    text-align: left;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.toast-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text);
+}
+
+.toast-table tr:hover td {
+    background: var(--primary-bg);
+}
+.toast-table tr.anomaly-row td {
+    background: #fffbeb;
+}
+.toast-table tr.anomaly-row:hover td {
+    background: #fef3c7;
+}
+
+.scatter-card.anomaly {
+    animation: anomaly-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes anomaly-pulse {
+    0%, 100% { box-shadow: var(--shadow); }
+    50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25); }
+}
+
+.scatter-card-anomaly-tooltip {
+    position: fixed;
+    max-width: 260px;
+    padding: 10px 12px;
+    background: var(--text);
+    color: var(--surface);
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 2000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* 异常调薪滑出框 */
+/* 异常调薪：hover 时卡片右侧滑出的黄色说明框 */
+.anomaly-slide-out {
+    position: fixed;
+    max-width: 280px;
+    padding: 12px 14px;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.55;
+    border-radius: 8px;
+    border: 1px solid #fcd34d;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    pointer-events: none;
+    z-index: 2000;
+    display: none;
+    transform: translateX(0);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.anomaly-slide-out.visible {
+    display: block;
+    transform: translateX(0);
+}
+/* 正常调薪：hover 时卡片右侧滑出的蓝色说明框（调薪原因） */
+.reason-slide-out {
+    position: fixed;
+    max-width: 280px;
+    padding: 12px 14px;
+    background: #eff6ff;
+    color: #1e40af;
+    font-size: 12px;
+    line-height: 1.55;
+    border-radius: 8px;
+    border: 1px solid #93c5fd;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+    pointer-events: none;
+    z-index: 2000;
+    display: none;
+}
+.reason-slide-out.visible {
+
+/* 散点卡片异常 tooltip */
+
+.toast-table tr:hover td {
+    background: var(--primary-bg);
+}
+.toast-table tr.anomaly-row td {
+    background: #fffbeb;
+}
+.toast-table tr.anomaly-row:hover td {
+    background: #fef3c7;
+}
+
+.scatter-card.anomaly {
+    animation: anomaly-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes anomaly-pulse {
+    0%, 100% { box-shadow: var(--shadow); }
+    50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25); }
+}
+
+.scatter-card-anomaly-tooltip {
+    position: fixed;
+    max-width: 260px;
+    padding: 10px 12px;
+    background: var(--text);
+    color: var(--surface);
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 2000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
