@@ -365,7 +365,7 @@ function renderDrawerPersonList(selectedEmpId) {
     var selectedCard = listEl.querySelector('.drawer-person-card.selected');
     if (selectedCard) selectedCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
-    // 渲染排序按钮（挂在标题区）
+    // 渲染排序下拉框（挂在标题区）
     var titleEl = document.getElementById('drawerPersonListTitle');
     if (titleEl) {
         titleEl.innerHTML = '';
@@ -375,23 +375,34 @@ function renderDrawerPersonList(selectedEmpId) {
         titleEl.appendChild(label);
         var sortBar = document.createElement('div');
         sortBar.className = 'drawer-person-sort-bar';
+        var sortLabel = document.createElement('span');
+        sortLabel.textContent = '按';
+        sortLabel.className = 'drawer-person-sort-label';
+        sortBar.appendChild(sortLabel);
+        var sortSelect = document.createElement('select');
+        sortSelect.className = 'drawer-person-sort-select';
         var sortOptions = [
             { key: 'default', label: '默认' },
             { key: 'salary', label: '薪酬' },
-            { key: 'tier', label: '梯队' },
-            { key: 'perf', label: '绩效' }
+            { key: 'perf', label: '上期绩效' },
+            { key: 'tier', label: '梯队' }
         ];
         sortOptions.forEach(function(opt) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = opt.label;
-            btn.className = 'drawer-person-sort-btn' + (sortKey === opt.key ? ' active' : '');
-            btn.addEventListener('click', function() {
-                _drawerPersonSortKey = opt.key;
-                renderDrawerPersonList(selectedEmpId);
-            });
-            sortBar.appendChild(btn);
+            var option = document.createElement('option');
+            option.value = opt.key;
+            option.textContent = opt.label;
+            if (sortKey === opt.key) option.selected = true;
+            sortSelect.appendChild(option);
         });
+        sortSelect.addEventListener('change', function() {
+            _drawerPersonSortKey = this.value;
+            renderDrawerPersonList(selectedEmpId);
+        });
+        sortBar.appendChild(sortSelect);
+        var sortSuffix = document.createElement('span');
+        sortSuffix.textContent = '排序';
+        sortSuffix.className = 'drawer-person-sort-label';
+        sortBar.appendChild(sortSuffix);
         titleEl.appendChild(sortBar);
     }
 }
