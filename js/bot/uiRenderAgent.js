@@ -230,7 +230,14 @@
                     var userName = (window.BOT_MOCK && BOT_MOCK.displayUserName) ? BOT_MOCK.displayUserName : '我';
                     self.appendUserChoice(userName, act.label);
                     if (act.key === 'ai_pre_adjust') {
-                        self.appendText('AI 正在根据绩效评定、职级和历史调薪记录为你预测合理调薪区间，请稍候…<br><div class="bot-mini-card"><strong>AI 预调薪酬建议（Mock）</strong><br>综合绩效分布与市场分位，建议本组平均涨幅控制在 6%～9% 区间，明星员工可适当上浮至 12%。</div>', 'ai');
+                        self.appendText(
+                            '请描述你的调薪规则，AI 将根据规则为团队成员预填薪酬。<br><br>' +
+                            '你可以告诉我：<br>' +
+                            '· 绩效与涨幅的对应关系（如：上期绩效为"超出预期"的涨 12%）<br>' +
+                            '· 特殊条件（如：试用期员工不参与调薪，上期涨了薪酬的员工不参与调薪）<br>' +
+                            '· 上限限制（如：单人涨幅不超过 12%，或不超过薪酬带宽上限）',
+                            'ai'
+                        );
                     } else if (act.key === 'ai_check_result') {
                         if (orchestrator && typeof orchestrator.getCompChangedIds === 'function') {
                             var compChangedIds = orchestrator.getCompChangedIds();

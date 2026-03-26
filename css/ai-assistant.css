@@ -184,9 +184,9 @@
     background: var(--primary);
     color: #fff;
     border-top-right-radius: 4px;
-    width: fit-content;
     max-width: calc(100% - 42px);
     box-sizing: border-box;
+    white-space: nowrap;
 }
 
 /* ── 消息内嵌表格 ── */
@@ -1007,24 +1007,33 @@
 .bot-flow-wrap {
     margin-top: 6px;
     display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 4px;
+    flex-wrap: nowrap;
+    width: 100%;
 }
 .bot-flow-step-wrap {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 4px;
     position: relative;
+    flex: 1;
+    min-width: 0;
 }
 .bot-flow-node {
     border: 1px solid #dbeafe;
     background: #eff6ff;
     color: #1d4ed8;
     border-radius: 8px;
-    padding: 4px 8px;
+    padding: 6px 4px;
     cursor: pointer;
     font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .bot-flow-node.optional {
     border-style: dashed;
