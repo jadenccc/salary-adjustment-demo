@@ -243,6 +243,10 @@
             if (typeof renderTableView === 'function') renderTableView();
             if (typeof renderGridView === 'function') renderGridView();
             if (typeof updateTaskCtxBar === 'function') updateTaskCtxBar();
+            // 刷新左侧人员列表卡片（使"待填报"标签更新为已填报状态）
+            if (selectedEmployee && typeof renderDrawerPersonList === 'function') {
+                renderDrawerPersonList(selectedEmployee.id);
+            }
         });
     }
     // 绩效回顾锚点导航
@@ -317,9 +321,6 @@ function calcTenure(joinDate) {
     return years + '年' + months + '个月';
 }
 
-/** 抽屉人员列表当前排序方式 */
-var _drawerPersonSortKey = 'default';
-
 /** 渲染抽屉左侧人员列表（仅待填报任务时显示） */
 function renderDrawerPersonList(selectedEmpId) {
     var listEl = document.getElementById('drawerPersonListBody');
@@ -330,26 +331,6 @@ function renderDrawerPersonList(selectedEmpId) {
     var filtered = allEmps.filter(function(e) {
         return activeTask.peopleIds.indexOf(e.id) >= 0;
     });
-
-    // 排序
-    var sortKey = _drawerPersonSortKey || 'default';
-    var LABEL_TO_TIER_LOCAL = { '明星员工': 0, '核心骨干': 1, '稳定发展': 2, '潜力新人': 3, '待提升': 3, '激活': 2, '绩效优秀': 1 };
-    var PERF_ORDER = { 'A+': 0, 'A': 1, 'B+': 2, 'B': 3, 'C': 4 };
-    if (sortKey === 'salary') {
-        filtered = filtered.slice().sort(function(a, b) { return (b.salary || 0) - (a.salary || 0); });
-    } else if (sortKey === 'tier') {
-        filtered = filtered.slice().sort(function(a, b) {
-            var ta = LABEL_TO_TIER_LOCAL[a.tier] != null ? LABEL_TO_TIER_LOCAL[a.tier] : 99;
-            var tb = LABEL_TO_TIER_LOCAL[b.tier] != null ? LABEL_TO_TIER_LOCAL[b.tier] : 99;
-            return ta - tb;
-        });
-    } else if (sortKey === 'perf') {
-        filtered = filtered.slice().sort(function(a, b) {
-            var pa = PERF_ORDER[a.performance] != null ? PERF_ORDER[a.performance] : 99;
-            var pb = PERF_ORDER[b.performance] != null ? PERF_ORDER[b.performance] : 99;
-            return pa - pb;
-        });
-    }
 
     filtered.forEach(function(e) {
         var card = document.createElement('div');
@@ -365,45 +346,10 @@ function renderDrawerPersonList(selectedEmpId) {
     var selectedCard = listEl.querySelector('.drawer-person-card.selected');
     if (selectedCard) selectedCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
-    // 渲染排序下拉框（挂在标题区）
+    // 渲染标题区
     var titleEl = document.getElementById('drawerPersonListTitle');
     if (titleEl) {
-        titleEl.innerHTML = '';
-        var label = document.createElement('span');
-        label.textContent = '人员列表';
-        label.className = 'drawer-person-list-title-text';
-        titleEl.appendChild(label);
-        var sortBar = document.createElement('div');
-        sortBar.className = 'drawer-person-sort-bar';
-        var sortLabel = document.createElement('span');
-        sortLabel.textContent = '按';
-        sortLabel.className = 'drawer-person-sort-label';
-        sortBar.appendChild(sortLabel);
-        var sortSelect = document.createElement('select');
-        sortSelect.className = 'drawer-person-sort-select';
-        var sortOptions = [
-            { key: 'default', label: '默认' },
-            { key: 'salary', label: '薪酬' },
-            { key: 'perf', label: '上期绩效' },
-            { key: 'tier', label: '梯队' }
-        ];
-        sortOptions.forEach(function(opt) {
-            var option = document.createElement('option');
-            option.value = opt.key;
-            option.textContent = opt.label;
-            if (sortKey === opt.key) option.selected = true;
-            sortSelect.appendChild(option);
-        });
-        sortSelect.addEventListener('change', function() {
-            _drawerPersonSortKey = this.value;
-            renderDrawerPersonList(selectedEmpId);
-        });
-        sortBar.appendChild(sortSelect);
-        var sortSuffix = document.createElement('span');
-        sortSuffix.textContent = '排序';
-        sortSuffix.className = 'drawer-person-sort-label';
-        sortBar.appendChild(sortSuffix);
-        titleEl.appendChild(sortBar);
+        titleEl.innerHTML = '<span class="drawer-person-list-title-text">人员列表</span>';
     }
 }
 
