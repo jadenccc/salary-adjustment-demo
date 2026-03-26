@@ -331,11 +331,8 @@
     }
 
     var FLOW_TEMPLATE = [
-        { id: 'review', title: '周期内团队回顾', required: false, skippable: true, removable: true },
         { id: 'perf', title: '绩效填报', required: true, skippable: false },
         { id: 'comp', title: '薪酬填报', required: true, skippable: false },
-        { id: 'ai_check', title: 'AI帮助检查方案', required: false, skippable: true },
-        { id: 'summary', title: '生成任务总结', required: false, skippable: true },
         { id: 'submit', title: '提交方案', required: true, skippable: false }
     ];
 
@@ -494,15 +491,9 @@
                 // 点击后续节点 => 自动把前置可跳过节点标记为已跳过
                 self._autoSkipOptionalBefore(stepIdx);
 
-                var flowBtnLabels = { review: '周期内团队回顾', perf: '绩效填报', comp: '薪酬填报', ai_check: 'AI帮助检查方案', summary: '生成任务总结', submit: '提交方案' };
+                var flowBtnLabels = { perf: '绩效填报', comp: '薪酬填报', submit: '提交方案' };
                 var userName = (BOT_MOCK && BOT_MOCK.displayUserName) ? BOT_MOCK.displayUserName : '我';
                 uiRenderAgent.appendUserChoice(userName, flowBtnLabels[action] || action);
-                if (action === 'review') {
-                    step.done = true;
-                    var hist = BOT_MOCK.history.last;
-                    uiRenderAgent.appendHistoryCard(hist);
-                    return;
-                }
                 if (action === 'perf') {
                     var highest = getHighestSalaryPerson(getPeopleByIds(self.botState.peopleIds));
                     if (highest) {
@@ -517,18 +508,7 @@
                     var highestComp = getHighestSalaryPerson(getPeopleByIds(self.botState.peopleIds));
                     if (highestComp) actionAgent.openPersonById(highestComp.id, 'salary');
                     uiRenderAgent.appendText('请在薪酬回顾页调整同学薪酬，或回到宽表（可点击跳转至宽表）修改', 'ai');
-                    return;
-                }
-                if (action === 'ai_check') {
-                    getStepById(self.flowSteps, 'ai_check').done = true;
-                    uiRenderAgent.appendText('AI检查完成：建议重点关注高涨幅人员与理由一致性。', 'ai');
-                    self.refreshProgressCard();
-                    return;
-                }
-                if (action === 'summary') {
-                    getStepById(self.flowSteps, 'summary').done = true;
-                    self.dispatch(BOT_INTENTS.GENERATE_SUMMARY);
-                    self.refreshProgressCard();
+                    uiRenderAgent.appendCompAiActions(self);
                     return;
                 }
                 if (action === 'submit') {
@@ -547,6 +527,10 @@
                 self.refreshProgressCard();
             }
         });
+    };
+
+    OrchestratorAgent.prototype.getCompChangedIds = function() {
+        return getCompChangedIdsInTask(this.botState.peopleIds || []);
     };
 
     OrchestratorAgent.prototype.buildFlowConfig = function() {

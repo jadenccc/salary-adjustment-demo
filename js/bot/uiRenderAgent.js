@@ -209,6 +209,53 @@
             a.onclick = onSummary; b.onclick = onSubmit;
             tail.appendChild(ops); ops.appendChild(a); ops.appendChild(b);
         },
+        appendCompAiActions: function(orchestrator) {
+            var self = this;
+            var c = this.getContainer();
+            if (!c) return;
+            var root = bubble(
+                '<div class="bot-option-title">你还可以使用以下 AI 功能辅助调薪：</div>',
+                'ai'
+            );
+            var box = mk('div', 'bot-option-list');
+            var actions = [
+                { label: 'AI 预调薪酬', key: 'ai_pre_adjust' },
+                { label: '检查当前调薪结果', key: 'ai_check_result' },
+                { label: '帮我生成调薪总结', key: 'ai_gen_summary' }
+            ];
+            actions.forEach(function(act) {
+                var btn = mk('button', 'bot-option-btn', act.label);
+                btn.type = 'button';
+                btn.addEventListener('click', function() {
+                    var userName = (window.BOT_MOCK && BOT_MOCK.displayUserName) ? BOT_MOCK.displayUserName : '我';
+                    self.appendUserChoice(userName, act.label);
+                    if (act.key === 'ai_pre_adjust') {
+                        self.appendText('AI 正在根据绩效评定、职级和历史调薪记录为你预测合理调薪区间，请稍候…<br><div class="bot-mini-card"><strong>AI 预调薪酬建议（Mock）</strong><br>综合绩效分布与市场分位，建议本组平均涨幅控制在 6%～9% 区间，明星员工可适当上浮至 12%。</div>', 'ai');
+                    } else if (act.key === 'ai_check_result') {
+                        if (orchestrator && typeof orchestrator.getCompChangedIds === 'function') {
+                            var compChangedIds = orchestrator.getCompChangedIds();
+                            if (compChangedIds.length) {
+                                self.appendText('AI 检查完成：建议重点关注高涨幅人员与理由一致性。', 'ai');
+                            } else {
+                                self.appendText('当前尚未检测到薪酬调整记录，请先完成薪酬填报后再检查。', 'ai');
+                            }
+                        } else {
+                            self.appendText('AI 检查完成：建议重点关注高涨幅人员与理由一致性。', 'ai');
+                        }
+                    } else if (act.key === 'ai_gen_summary') {
+                        if (orchestrator && typeof orchestrator.dispatch === 'function') {
+                            orchestrator.dispatch(BOT_INTENTS.GENERATE_SUMMARY);
+                        } else {
+                            self.appendText('调薪总结生成中，请稍候…', 'ai');
+                        }
+                    }
+                });
+                box.appendChild(btn);
+            });
+            root.querySelector('.ai-msg-bubble').appendChild(box);
+            c.appendChild(root);
+            this.scrollBottom();
+        },
         appendSummaryCard: function(state, people) {
             var adjusted = people.filter(function(p) { return (p.adjustment || 0) !== 0; });
             var avg = adjusted.length ? (adjusted.reduce(function(s, p) { return s + (p.adjustment || 0); }, 0) / adjusted.length).toFixed(1) : '0.0';
