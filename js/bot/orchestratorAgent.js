@@ -362,6 +362,8 @@
         this.flowConfig = { label: '' };
         this._autoPerfMarked = false;
         this._autoCompMarked = false;
+        this._perfTableActive = false;
+        this._compTableActive = false;
     }
 
     OrchestratorAgent.prototype.startForTask = function(task) {
@@ -373,6 +375,8 @@
         this.flowSteps = cloneFlowSteps();
         this._autoPerfMarked = false;
         this._autoCompMarked = false;
+        this._perfTableActive = false;
+        this._compTableActive = false;
         // Demo：清空上一轮绩效保存记录
         if (typeof perfFilledIds !== 'undefined' && perfFilledIds && typeof perfFilledIds.clear === 'function') {
             perfFilledIds.clear();
@@ -410,9 +414,10 @@
         var perf = getStepById(this.flowSteps, 'perf');
         var comp = getStepById(this.flowSteps, 'comp');
         var perfIdsInTask = getPerfFilledIdsInTask(this.botState.peopleIds || []);
-        var hasPerfThree = perfIdsInTask.length >= 3;
+        // 绩效填报完成条件：至少点击了一次员工绩效表单的"保存"按钮
+        var hasPerfOne = perfIdsInTask.length >= 1;
 
-        if (perf && !perf.done && hasPerfThree) {
+        if (perf && !perf.done && hasPerfOne) {
             perf.done = true;
             this.botState.taskProgress.perfConfirmed = true;
             this.botState.phase = BOT_PHASES.IN_PROGRESS_COMP;
@@ -422,11 +427,11 @@
             }
         }
 
-        // 薪酬填报完成标准：任务内至少 3 个人的薪酬发生变化（调整幅度非 0）
+        // 薪酬填报完成条件：至少调整了一次员工的薪酬表单（调整幅度非 0）
         if (comp && !comp.done) {
             var changedIdsInTask = getCompChangedIdsInTask(this.botState.peopleIds || []);
-            var hasCompThree = changedIdsInTask.length >= 3;
-            if (hasCompThree) {
+            var hasCompOne = changedIdsInTask.length >= 1;
+            if (hasCompOne) {
                 comp.done = true;
                 this.botState.taskProgress.compConfirmed = true;
                 if (!this._autoCompMarked) {
@@ -434,6 +439,14 @@
                     uiRenderAgent.appendText(buildCompOverviewMessageHtml(changedIdsInTask, this.botState.peopleIds || []), 'ai');
                 }
             }
+        }
+
+        // 实时刷新状态表格
+        if (this._perfTableActive) {
+            uiRenderAgent.refreshPerfStatusTable(this.botState.peopleIds || []);
+        }
+        if (this._compTableActive) {
+            uiRenderAgent.refreshCompStatusTable(this.botState.peopleIds || []);
         }
     };
 
@@ -498,16 +511,18 @@
                     var highest = getHighestSalaryPerson(getPeopleByIds(self.botState.peopleIds));
                     if (highest) {
                         actionAgent.openPersonById(highest.id, 'performance');
-                        uiRenderAgent.appendText('已为你打开当前任务中薪酬最高的成员：' + highest.name + '，请在绩效页点击保存完成该步骤。', 'ai');
-                    } else {
-                        uiRenderAgent.appendText('当前没有可打开的成员数据。', 'ai');
                     }
+                    uiRenderAgent.appendText('已为你打开绩效填报表单，以下是「绩效填报」实时进度：', 'ai');
+                    self._perfTableActive = true;
+                    uiRenderAgent.appendPerfStatusTable(self.botState.peopleIds || []);
                     return;
                 }
                 if (action === 'comp') {
                     var highestComp = getHighestSalaryPerson(getPeopleByIds(self.botState.peopleIds));
                     if (highestComp) actionAgent.openPersonById(highestComp.id, 'salary');
-                    uiRenderAgent.appendText('请在薪酬回顾页调整同学薪酬，或回到宽表（可点击跳转至宽表）修改', 'ai');
+                    uiRenderAgent.appendText('已为您打开薪酬回顾页，也可以回到宽表、或打开白板视图拖拽调整', 'ai');
+                    self._compTableActive = true;
+                    uiRenderAgent.appendCompStatusTable(self.botState.peopleIds || []);
                     uiRenderAgent.appendCompAiActions(self);
                     return;
                 }

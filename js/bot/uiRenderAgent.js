@@ -209,6 +209,128 @@
             a.onclick = onSummary; b.onclick = onSubmit;
             tail.appendChild(ops); ops.appendChild(a); ops.appendChild(b);
         },
+        appendPerfStatusTable: function(taskPeopleIds) {
+            var c = this.getContainer();
+            if (!c) return;
+            var tableId = 'botPerfStatusTable';
+            // 避免重复插入
+            if (document.getElementById(tableId)) return;
+            var html = '<div class="bot-status-table-wrap" id="' + tableId + '">' +
+                this._buildPerfStatusTableHtml(taskPeopleIds) +
+                '</div>';
+            var msg = bubble(html, 'ai');
+            msg.setAttribute('data-bot-perf-table', '1');
+            c.appendChild(msg);
+            // 事件委托：点击行打开对应员工绩效详情
+            var wrap = document.getElementById(tableId);
+            if (wrap) {
+                wrap.addEventListener('click', function(e) {
+                    var tr = e.target.closest('tr[data-emp-id]');
+                    if (!tr) return;
+                    var empId = Number(tr.getAttribute('data-emp-id'));
+                    if (empId && window.actionAgent && typeof window.actionAgent.openPersonById === 'function') {
+                        window.actionAgent.openPersonById(empId, 'performance');
+                    }
+                });
+            }
+            this.scrollBottom();
+        },
+        _buildPerfStatusTableHtml: function(taskPeopleIds) {
+            var allEmps = (typeof employees !== 'undefined') ? employees : (window.employees || []);
+            var perfSet = (typeof perfFilledIds !== 'undefined' && perfFilledIds) ? perfFilledIds : new Set();
+            var rows = '';
+            var uniq = [];
+            var seen = {};
+            for (var i = 0; i < (taskPeopleIds || []).length; i++) {
+                var id = taskPeopleIds[i];
+                if (seen[id]) continue;
+                seen[id] = true;
+                uniq.push(id);
+            }
+            uniq.forEach(function(id) {
+                var emp = allEmps.find(function(e) { return e.id === id; });
+                var name = emp ? escapeHtml(emp.name) : String(id);
+                var tagLabel = emp ? escapeHtml(emp.tier || '') : '';
+                var done = perfSet.has(id);
+                var statusCls = done ? 'bot-status-done' : 'bot-status-pending';
+                var statusText = done ? '✔ 已完成' : '待填报';
+                rows += '<tr class="bot-status-row" data-emp-id="' + id + '">' +
+                    '<td class="bot-status-td-name">' + name + '</td>' +
+                    '<td class="bot-status-td-tag"><span class="bot-status-tier-tag">' + tagLabel + '</span></td>' +
+                    '<td class="bot-status-td-status"><span class="' + statusCls + '">' + statusText + '</span></td>' +
+                    '</tr>';
+            });
+            return '<div class="bot-status-table-title">「绩效填报」实时进度</div>' +
+                '<table class="bot-status-table">' +
+                '<thead><tr><th>姓名</th><th>人员标签</th><th>完成状态</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '</table>';
+        },
+        refreshPerfStatusTable: function(taskPeopleIds) {
+            var wrap = document.getElementById('botPerfStatusTable');
+            if (!wrap) return;
+            wrap.innerHTML = this._buildPerfStatusTableHtml(taskPeopleIds);
+        },
+        appendCompStatusTable: function(taskPeopleIds) {
+            var c = this.getContainer();
+            if (!c) return;
+            var tableId = 'botCompStatusTable';
+            if (document.getElementById(tableId)) return;
+            var html = '<div class="bot-status-table-wrap" id="' + tableId + '">' +
+                this._buildCompStatusTableHtml(taskPeopleIds) +
+                '</div>';
+            var msg = bubble(html, 'ai');
+            msg.setAttribute('data-bot-comp-table', '1');
+            c.appendChild(msg);
+            // 事件委托：点击行打开对应员工薪酬详情
+            var wrap = document.getElementById(tableId);
+            if (wrap) {
+                wrap.addEventListener('click', function(e) {
+                    var tr = e.target.closest('tr[data-emp-id]');
+                    if (!tr) return;
+                    var empId = Number(tr.getAttribute('data-emp-id'));
+                    if (empId && window.actionAgent && typeof window.actionAgent.openPersonById === 'function') {
+                        window.actionAgent.openPersonById(empId, 'salary');
+                    }
+                });
+            }
+            this.scrollBottom();
+        },
+        _buildCompStatusTableHtml: function(taskPeopleIds) {
+            var allEmps = (typeof employees !== 'undefined') ? employees : (window.employees || []);
+            var rows = '';
+            var uniq = [];
+            var seen = {};
+            for (var i = 0; i < (taskPeopleIds || []).length; i++) {
+                var id = taskPeopleIds[i];
+                if (seen[id]) continue;
+                seen[id] = true;
+                uniq.push(id);
+            }
+            uniq.forEach(function(id) {
+                var emp = allEmps.find(function(e) { return e.id === id; });
+                var name = emp ? escapeHtml(emp.name) : String(id);
+                var tagLabel = emp ? escapeHtml(emp.tier || '') : '';
+                var done = emp && Number(emp.adjustment || 0) !== 0;
+                var statusCls = done ? 'bot-status-done' : 'bot-status-pending';
+                var statusText = done ? '✔ 已调整' : '待填报';
+                rows += '<tr class="bot-status-row" data-emp-id="' + id + '">' +
+                    '<td class="bot-status-td-name">' + name + '</td>' +
+                    '<td class="bot-status-td-tag"><span class="bot-status-tier-tag">' + tagLabel + '</span></td>' +
+                    '<td class="bot-status-td-status"><span class="' + statusCls + '">' + statusText + '</span></td>' +
+                    '</tr>';
+            });
+            return '<div class="bot-status-table-title">「薪酬填报」实时进度</div>' +
+                '<table class="bot-status-table">' +
+                '<thead><tr><th>姓名</th><th>人员标签</th><th>完成状态</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '</table>';
+        },
+        refreshCompStatusTable: function(taskPeopleIds) {
+            var wrap = document.getElementById('botCompStatusTable');
+            if (!wrap) return;
+            wrap.innerHTML = this._buildCompStatusTableHtml(taskPeopleIds);
+        },
         appendCompAiActions: function(orchestrator) {
             var self = this;
             var c = this.getContainer();
