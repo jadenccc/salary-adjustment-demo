@@ -236,7 +236,14 @@
         var btn = document.getElementById('perfSave');
         if (!btn) return;
         btn.addEventListener('click', function() {
-            if (selectedEmployee && typeof perfFilledIds !== 'undefined') {
+            if (!selectedEmployee) return;
+            // 先把当前 select 的值同步回 selectedEmployee，防止未触发 change 事件时丢失
+            var perfSummaryLeaderSelect = document.getElementById('perfSummaryLeaderSelect');
+            if (perfSummaryLeaderSelect && perfSummaryLeaderSelect.value) {
+                selectedEmployee.leaderSummaryEval = perfSummaryLeaderSelect.value;
+            }
+            // 标记为已填报
+            if (typeof perfFilledIds !== 'undefined') {
                 perfFilledIds.add(selectedEmployee.id);
             }
             if (typeof renderScatterView === 'function') renderScatterView();
@@ -244,7 +251,7 @@
             if (typeof renderGridView === 'function') renderGridView();
             if (typeof updateTaskCtxBar === 'function') updateTaskCtxBar();
             // 刷新左侧人员列表卡片（使"待填报"标签更新为已填报状态）
-            if (selectedEmployee && typeof renderDrawerPersonList === 'function') {
+            if (typeof renderDrawerPersonList === 'function') {
                 renderDrawerPersonList(selectedEmployee.id);
             }
         });

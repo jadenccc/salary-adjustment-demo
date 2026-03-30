@@ -8,6 +8,9 @@
         return getAllEmployees().filter(function(e) { return ids.indexOf(e.id) >= 0; });
     }
 
+    // Demo：绩效填报专用的3个员工 ID
+    var PERF_DEMO_IDS = [22, 4, 6]; // 王二五、孙七、吴九
+
     function perfSummaryHtml(people) {
         var count = { 'A/A+': 0, 'B/B+': 0, 'C': 0, '待定': 0 };
         people.forEach(function(p) {
@@ -86,7 +89,6 @@
     }
 
     function buildPerfOverviewMessageHtml(perfIdsInTask) {
-        // 避免同一人员 id 在 taskPeopleIds 中重复导致饼图/列表翻倍
         var uniq = [];
         var seenPerf = {};
         for (var i = 0; i < (perfIdsInTask || []).length; i++) {
@@ -131,7 +133,6 @@
             if (counts[r.l1] != null) counts[r.l1] += 1;
         });
 
-        // conic-gradient 饼图
         var cumDeg = 0;
         var segments = [];
         for (var i = 0; i < levelOrder.length; i++) {
@@ -157,7 +158,6 @@
         });
         pieHtml += '</div></div>';
 
-        // 可视化表格：仅展示「本期评定」（下半年/任务填写的那一期）
         var currentPeriodLabel = perfPeriods[1] || '本期评定';
         var tableRowsHtml = rows.map(function(r) {
             var label = r.l1 || '—';
@@ -206,7 +206,6 @@
         var all = getAllEmployees();
         function findEmp(id) { return all.find(function(e) { return e.id === id; }); }
 
-        // 去重：避免同一人员 id 在 taskPeopleIds 中重复导致翻倍展示/计算
         var uniqTaskPeopleIds = [];
         var seenTask = {};
         for (var i = 0; i < (taskPeopleIds || []).length; i++) {
@@ -256,7 +255,6 @@
             };
         });
 
-        // 平均值口径：仅对“已发生薪酬调整”的人员取平均
         var denom = changedCount || 1;
         var avgDelta = Math.round(sumDelta / denom);
         var avgRate = sumRate / denom;
@@ -278,7 +276,6 @@
                 '</tr>';
         }
 
-        // 明细显示口径：只展示“调薪额 != 0”的人；调薪额为 0 的人默认折叠
         var adjustedRows = rows.filter(function(r) { return r.delta !== 0; });
         var zeroDeltaRows = rows.filter(function(r) { return r.delta === 0; });
 
@@ -330,10 +327,10 @@
             '</div>';
     }
 
+    // 只保留绩效填报和薪酬填报两个节点
     var FLOW_TEMPLATE = [
         { id: 'perf', title: '绩效填报', required: true, skippable: false },
-        { id: 'comp', title: '薪酬填报', required: true, skippable: false },
-        { id: 'submit', title: '提交方案', required: true, skippable: false }
+        { id: 'comp', title: '薪酬填报', required: true, skippable: false }
     ];
 
     function cloneFlowSteps() {
@@ -364,6 +361,12 @@
         this._autoCompMarked = false;
         this._perfTableActive = false;
         this._compTableActive = false;
+        // 绩效填报：已保存的员工ID集合（用于进度记录去重）
+        this._perfSavedIds = {};
+        // 绩效填报：是否已提示"全部完成"
+        this._perfAllDoneNotified = false;
+        // 薪酬填报：是否已进入
+        this._compEnteredNotified = false;
     }
 
     OrchestratorAgent.prototype.startForTask = function(task) {
@@ -377,14 +380,23 @@
         this._autoCompMarked = false;
         this._perfTableActive = false;
         this._compTableActive = false;
+        this._perfSavedIds = {};
+        this._perfAllDoneNotified = false;
+        this._compEnteredNotified = false;
+
+        // 清空进度记录
+        uiRenderAgent.clearTaskProgressLog();
+
         // Demo：清空上一轮绩效保存记录
         if (typeof perfFilledIds !== 'undefined' && perfFilledIds && typeof perfFilledIds.clear === 'function') {
             perfFilledIds.clear();
         }
-        // Demo：预置王二五 / 孙七 的绩效待填报结果（保存后会展示）
+        // Demo：预置绩效填报3个员工的绩效结果
         presetPerfTagsForDemo(22, ['超出', '略低']); // 王二五
         presetPerfTagsForDemo(4, ['略超', '达到']);   // 孙七
-        uiRenderAgent.appendText('你好！已进入「2026年7月绩效+薪酬回顾」填报任务，本次需处理 14 人。流程已就绪，你可直接从当前可点击节点开始。', 'ai');
+        presetPerfTagsForDemo(6, ['超出', '超出']);   // 吴九
+
+        uiRenderAgent.appendText('你好！已进入「2026年7月绩效+薪酬回顾」填报任务，本次需处理 3 人。流程已就绪，你可直接从当前可点击节点开始。', 'ai');
         this.refreshProgressCard();
         this.stateAgent.start();
     };
@@ -410,20 +422,48 @@
         return idx <= blocker;
     };
 
+    // 获取绩效填报的3个员工的绩效结果标签（用于进度记录）
+    OrchestratorAgent.prototype._getPerfResultLabel = function(empId) {
+        var emp = getAllEmployees().find(function(e) { return e.id === empId; });
+        if (!emp || !emp.performanceTags || !emp.performanceTags.length) return '已填报';
+        // 取第一个tag的文字作为结果
+        var t = emp.performanceTags[0] ? emp.performanceTags[0].text : '';
+        return perfTextToLevelLabel(t) || '已填报';
+    };
+
     OrchestratorAgent.prototype._syncAutoCompletion = function() {
+        var self = this;
         var perf = getStepById(this.flowSteps, 'perf');
         var comp = getStepById(this.flowSteps, 'comp');
-        var perfIdsInTask = getPerfFilledIdsInTask(this.botState.peopleIds || []);
-        // 绩效填报完成条件：至少点击了一次员工绩效表单的"保存"按钮
-        var hasPerfOne = perfIdsInTask.length >= 1;
 
-        if (perf && !perf.done && hasPerfOne) {
-            perf.done = true;
-            this.botState.taskProgress.perfConfirmed = true;
-            this.botState.phase = BOT_PHASES.IN_PROGRESS_COMP;
-            if (!this._autoPerfMarked) {
-                this._autoPerfMarked = true;
-                uiRenderAgent.appendText(buildPerfOverviewMessageHtml(perfIdsInTask), 'ai');
+        // 绩效填报：监听3个员工的保存情况
+        var perfDemoIds = PERF_DEMO_IDS;
+        var perfIdsInTask = getPerfFilledIdsInTask(perfDemoIds);
+
+        // 每当有新员工绩效被保存，追加进度记录
+        for (var i = 0; i < perfIdsInTask.length; i++) {
+            var savedId = perfIdsInTask[i];
+            if (!self._perfSavedIds[savedId]) {
+                self._perfSavedIds[savedId] = true;
+                var emp = getAllEmployees().find(function(e) { return e.id === savedId; });
+                var empName = emp ? emp.name : String(savedId);
+                var resultLabel = self._getPerfResultLabel(savedId);
+                uiRenderAgent.addTaskProgressLog('✅已保存' + empName + '的绩效结果：' + resultLabel + '；');
+            }
+        }
+
+        // 3个员工全部填完后提示
+        if (!self._perfAllDoneNotified && perfIdsInTask.length >= perfDemoIds.length) {
+            self._perfAllDoneNotified = true;
+            uiRenderAgent.addTaskProgressLog('🎉 绩效填写全部完成');
+            if (perf && !perf.done) {
+                perf.done = true;
+                self.botState.taskProgress.perfConfirmed = true;
+                self.botState.phase = BOT_PHASES.IN_PROGRESS_COMP;
+                if (!self._autoPerfMarked) {
+                    self._autoPerfMarked = true;
+                    uiRenderAgent.appendText(buildPerfOverviewMessageHtml(perfIdsInTask), 'ai');
+                }
             }
         }
 
@@ -443,7 +483,7 @@
 
         // 实时刷新状态表格
         if (this._perfTableActive) {
-            uiRenderAgent.refreshPerfStatusTable(this.botState.peopleIds || []);
+            uiRenderAgent.refreshPerfStatusTable(perfDemoIds);
         }
         if (this._compTableActive) {
             uiRenderAgent.refreshCompStatusTable(this.botState.peopleIds || []);
@@ -451,7 +491,6 @@
     };
 
     OrchestratorAgent.prototype._autoSkipOptionalBefore = function(targetStepIdx) {
-        // 用户不需要点“跳过”，直接点后续节点时，视为跳过其前面的可跳过节点
         for (var i = 0; i < targetStepIdx; i++) {
             var s = this.flowSteps[i];
             if (s.removed) continue;
@@ -488,7 +527,6 @@
     };
 
     OrchestratorAgent.prototype.refreshProgressCard = function() {
-        if (!this.botState.peopleIds.length) return;
         var self = this;
         this._syncAutoCompletion();
         uiRenderAgent.upsertProgressCard(this.botState, this._buildFlowView(), {
@@ -501,36 +539,62 @@
                     return;
                 }
 
-                // 点击后续节点 => 自动把前置可跳过节点标记为已跳过
                 self._autoSkipOptionalBefore(stepIdx);
 
-                var flowBtnLabels = { perf: '绩效填报', comp: '薪酬填报', submit: '提交方案' };
+                var flowBtnLabels = { perf: '绩效填报', comp: '薪酬填报' };
                 var userName = (BOT_MOCK && BOT_MOCK.displayUserName) ? BOT_MOCK.displayUserName : '我';
                 uiRenderAgent.appendUserChoice(userName, flowBtnLabels[action] || action);
+
                 if (action === 'perf') {
-                    var highest = getHighestSalaryPerson(getPeopleByIds(self.botState.peopleIds));
-                    if (highest) {
-                        actionAgent.openPersonById(highest.id, 'performance');
+                    // 绩效填报：右侧筛选出3个需要绩效填报的员工，打开第一个
+                    var perfPeople = getPeopleByIds(PERF_DEMO_IDS);
+                    if (perfPeople.length > 0) {
+                        actionAgent.openPersonById(perfPeople[0].id, 'performance');
                     }
-                    uiRenderAgent.appendText('已为你打开绩效填报表单，以下是「绩效填报」实时进度：', 'ai');
+                    // 如果有 enterActiveTask，筛选出这3个人
+                    if (typeof enterActiveTask === 'function' && window.activeTask) {
+                        // 更新 activeTask 的 peopleIds 为绩效填报的3个人
+                        window.activeTask.peopleIds = PERF_DEMO_IDS.slice();
+                        if (typeof renderScatterView === 'function' && window.currentView === 'scatter') renderScatterView();
+                        if (typeof renderTableView === 'function' && window.currentView === 'table') renderTableView();
+                        if (typeof renderGridView === 'function' && window.currentView === 'grid') renderGridView();
+                    }
+                    uiRenderAgent.appendText('已为你打开绩效填报表单，请依次填写以下 3 位员工的绩效并保存：', 'ai');
                     self._perfTableActive = true;
-                    uiRenderAgent.appendPerfStatusTable(self.botState.peopleIds || []);
+                    uiRenderAgent.appendPerfStatusTable(PERF_DEMO_IDS);
                     return;
                 }
+
                 if (action === 'comp') {
-                    var highestComp = getHighestSalaryPerson(getPeopleByIds(self.botState.peopleIds));
-                    if (highestComp) actionAgent.openPersonById(highestComp.id, 'salary');
-                    uiRenderAgent.appendText('已为您打开薪酬回顾页，也可以回到宽表、或打开白板视图拖拽调整', 'ai');
-                    self._compTableActive = true;
-                    uiRenderAgent.appendCompStatusTable(self.botState.peopleIds || []);
-                    uiRenderAgent.appendCompAiActions(self);
+                    // 进入薪酬填报：追加进度记录
+                    if (!self._compEnteredNotified) {
+                        self._compEnteredNotified = true;
+                        uiRenderAgent.addTaskProgressLog('📋 进入薪酬填报任务');
+                    }
+                    // 出现 AI辅助调薪 / 手动调整 两个按钮
+                    uiRenderAgent.appendCompModeCard(
+                        function onAiAssist() {
+                            // AI辅助调薪：Bot对话告知用户
+                            uiRenderAgent.appendText(
+                                '请描述你的调薪规则，AI 将根据规则为团队成员预填薪酬。<br><br>' +
+                                '你可以告诉我：<br>' +
+                                '· 绩效与涨幅的对应关系（如：上期绩效为"超出预期"的涨 12%）<br>' +
+                                '· 特殊条件（如：试用期员工不参与调薪，上期涨了薪酬的员工不参与调薪）<br>' +
+                                '· 上限限制（如：单人涨幅不超过 12%，或不超过薪酬带宽上限）',
+                                'ai'
+                            );
+                        },
+                        function onManual() {
+                            // 手动调整：正常打开右侧薪酬人员详情
+                            var highestComp = getHighestSalaryPerson(getPeopleByIds(self.botState.peopleIds));
+                            if (highestComp) actionAgent.openPersonById(highestComp.id, 'salary');
+                            uiRenderAgent.appendText('已为您打开薪酬回顾页，也可以回到宽表、或打开白板视图拖拽调整', 'ai');
+                            self._compTableActive = true;
+                            uiRenderAgent.appendCompStatusTable(self.botState.peopleIds || []);
+                            uiRenderAgent.appendCompAiActions(self);
+                        }
+                    );
                     return;
-                }
-                if (action === 'submit') {
-                    getStepById(self.flowSteps, 'submit').done = true;
-                    self.dispatch(BOT_INTENTS.SUBMIT_PLAN);
-                    self.botState.phase = BOT_PHASES.DONE;
-                    self.refreshProgressCard();
                 }
             },
             onFlowRemove: function(action) {
@@ -558,7 +622,7 @@
         switch (intent) {
             case BOT_INTENTS.GENERATE_SUMMARY:
                 var taskPeopleIds = bs.peopleIds || [];
-                var perfIdsInTask = getPerfFilledIdsInTask(taskPeopleIds);
+                var perfIdsInTask = getPerfFilledIdsInTask(PERF_DEMO_IDS);
                 var compChangedIdsInTask = getCompChangedIdsInTask(taskPeopleIds);
 
                 var html = '<div style="font-weight: 900; color: #0f172a; margin-bottom: 10px;">本期任务总结（调绩效 + 调薪）</div>';
@@ -611,4 +675,3 @@
 
     window.OrchestratorAgent = OrchestratorAgent;
 })();
-

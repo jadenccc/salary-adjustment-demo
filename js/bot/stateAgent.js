@@ -1,5 +1,8 @@
 /* === stateAgent.js === 状态监听 */
 (function() {
+    // Demo：绩效填报专用的3个员工 ID（与 orchestratorAgent 保持一致）
+    var PERF_DEMO_IDS = [22, 4, 6];
+
     function getAllEmployees() {
         if (typeof employees !== 'undefined') return employees;
         return window.employees || [];
@@ -33,7 +36,6 @@
             if (seen[id]) continue;
             var emp = getAllEmployees().find(function(e) { return e.id === id; });
             if (!emp) continue;
-            // 薪酬填报完成标准：该人员薪酬（调整幅度）发生变化
             if (Number(emp.adjustment || 0) === 0) continue;
             seen[id] = true;
             out.push(id);
@@ -52,7 +54,8 @@
         this.tid = setInterval(function() {
             var bs = self.orchestrator.botState;
             if (!bs || !bs.peopleIds || !bs.peopleIds.length) return;
-            var perfDone = getPerfDoneIds(bs.peopleIds);
+            // 绩效进度：只监听3个绩效填报员工
+            var perfDone = getPerfDoneIds(PERF_DEMO_IDS);
             var compDone = getCompDoneIds(bs.peopleIds);
             bs.taskProgress.perfDone = perfDone.slice();
             bs.taskProgress.compDone = compDone.slice();
@@ -67,4 +70,3 @@
 
     window.StateAgent = StateAgent;
 })();
-

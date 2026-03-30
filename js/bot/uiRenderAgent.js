@@ -21,6 +21,9 @@
         return msg;
     }
 
+    // 任务进度记录列表（全局，跨任务保留）
+    var _taskProgressLog = [];
+
     var ui = {
         messageMap: {},
         getContainer: function() {
@@ -76,34 +79,59 @@
         getTopHost: function() {
             return document.getElementById('aiTopProgressHost');
         },
-        _progressSectionHtml: function(state) {
-            var total = (state.peopleIds || []).length;
-            var perfDone = state.taskProgress.perfDone.length;
-            var compDone = state.taskProgress.compDone.length;
-            return '<div class="title">📋 填报进度</div>' +
-                '<div class="bot-top-summary">总进度：' + (perfDone + compDone) + '/' + (total * 2) + '&nbsp;|&nbsp;绩效 ' + perfDone + '/' + total + '&nbsp;|&nbsp;薪酬 ' + compDone + '/' + total + '</div>' +
-                '<div class="bot-top-bars"><div class="bar"><span style="width:' + (total ? (perfDone / total * 100).toFixed(1) : 0) + '%"></span></div><div class="bar"><span style="width:' + (total ? (compDone / total * 100).toFixed(1) : 0) + '%"></span></div></div>';
+
+        // ── 追加任务进度记录 ──
+        addTaskProgressLog: function(text) {
+            _taskProgressLog.push(text);
+            this._renderTaskProgressLog();
         },
+        // 清空进度记录（重置任务时调用）
+        clearTaskProgressLog: function() {
+            _taskProgressLog = [];
+            // 直接清空 DOM，不走增量渲染
+            var el = document.getElementById('botTaskProgressLog');
+            if (el) el.innerHTML = '';
+        },
+        _renderTaskProgressLog: function() {
+            var el = document.getElementById('botTaskProgressLog');
+            if (!el) return;
+            var logs = _taskProgressLog;
+            // 用 data-log-index 标记已渲染的条目，避免重复渲染导致闪烁
+            // 找出已渲染的最大 index（-1 表示 DOM 中没有任何已标记条目）
+            var renderedMax = -1;
+            var children = el.children;
+            for (var j = 0; j < children.length; j++) {
+                var idx = parseInt(children[j].getAttribute('data-log-index'), 10);
+                if (!isNaN(idx) && idx > renderedMax) renderedMax = idx;
+            }
+            // DOM 重建后 el 为空但 _taskProgressLog 有历史记录：恢复时不加动画
+            // 只有在已有渲染基础上追加的才是真正新条目，加动画
+            var isDomRebuild = (renderedMax === -1 && logs.length > 0);
+            for (var i = renderedMax + 1; i < logs.length; i++) {
+                var item = document.createElement('div');
+                // DOM 重建恢复历史：无动画；真正新增条目：有动画
+                var withAnim = !isDomRebuild;
+                item.className = 'bot-task-log-item' + (withAnim ? ' bot-task-log-item-new' : '');
+                item.setAttribute('data-log-index', i);
+                item.textContent = logs[i];
+                el.appendChild(item);
+            }
+            // 滚动到底部
+            el.scrollTop = el.scrollHeight;
+        },
+
+        // ── 渲染顶部卡片：只有任务流程 + 进度记录区域 ──
         renderTopLoadingCard: function() {
             var host = this.getTopHost();
             if (!host) return;
             host.innerHTML = '<div class="bot-top-card">' +
-                '<div class="title">📋 填报进度</div>' +
-                '<div class="bot-top-muted">未进入填报任务</div>' +
-                '</div>';
-        },
-        renderTopProgressAndFlowPlaceholder: function(state) {
-            var host = this.getTopHost();
-            if (!host) return;
-            host.innerHTML = '<div class="bot-top-card">' +
-                this._progressSectionHtml(state) +
                 '<div class="bot-flow-title">任务流程</div>' +
-                '<div class="bot-top-flow-loading">' +
-                '<span class="bot-top-loading-text">正在生成流程，请先完成上方问卷…</span>' +
-                '<div class="bot-loading-dots"><span></span><span></span><span></span></div>' +
-                '</div>' +
+                '<div class="bot-top-muted">未进入填报任务</div>' +
+                '<div class="bot-task-log-wrap"><div class="bot-task-log" id="botTaskProgressLog"></div></div>' +
                 '</div>';
+            this._renderTaskProgressLog();
         },
+
         renderTopFlowAndProgress: function(state, flowConfig, handlers) {
             var host = this.getTopHost();
             if (!host) return;
@@ -126,11 +154,13 @@
             });
             var flowHtml = '<div class="bot-flow-wrap">' + parts.join('') + '</div>';
             host.innerHTML = '<div class="bot-top-card">' +
-                this._progressSectionHtml(state) +
                 '<div class="bot-flow-title">任务流程</div>' +
                 flowHtml +
-                '<div class="bot-progress-tail" id="botProgressTail"></div>' +
+                '<div class="bot-task-log-wrap"><div class="bot-task-log" id="botTaskProgressLog"></div></div>' +
                 '</div>';
+            // 重新渲染进度记录
+            this._renderTaskProgressLog();
+
             host.querySelectorAll('.bot-flow-node').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     var act = btn.getAttribute('data-action');
@@ -151,9 +181,16 @@
                 });
             });
         },
+
+        // 兼容旧调用
+        renderTopProgressAndFlowPlaceholder: function(state) {
+            this.renderTopLoadingCard();
+        },
+
         upsertProgressCard: function(state, flowConfig, handlers) {
             this.renderTopFlowAndProgress(state, flowConfig, handlers);
         },
+
         showPerfConfirmCard: function(summaryHtml, onConfirm, onEdit) {
             this.removeByKey('bot_confirm_card');
             var c = this.getContainer();
@@ -331,6 +368,41 @@
             if (!wrap) return;
             wrap.innerHTML = this._buildCompStatusTableHtml(taskPeopleIds);
         },
+
+        // ── 薪酬填报：AI辅助调薪 / 手动调整 选择卡片 ──
+        appendCompModeCard: function(onAiAssist, onManual) {
+            var self = this;
+            var c = this.getContainer();
+            if (!c) return;
+            var root = bubble(
+                '<div class="bot-option-title">请选择调薪方式：</div>',
+                'ai'
+            );
+            var box = mk('div', 'bot-option-list');
+            var actions = [
+                { label: 'AI辅助调薪', key: 'ai' },
+                { label: '手动调整', key: 'manual' }
+            ];
+            actions.forEach(function(act) {
+                var btn = mk('button', 'bot-option-btn', act.label);
+                btn.type = 'button';
+                btn.addEventListener('click', function() {
+                    var userName = (window.BOT_MOCK && BOT_MOCK.displayUserName) ? BOT_MOCK.displayUserName : '我';
+                    self.appendUserChoice(userName, act.label);
+                    box.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+                    if (act.key === 'ai') {
+                        onAiAssist && onAiAssist();
+                    } else {
+                        onManual && onManual();
+                    }
+                });
+                box.appendChild(btn);
+            });
+            root.querySelector('.ai-msg-bubble').appendChild(box);
+            c.appendChild(root);
+            this.scrollBottom();
+        },
+
         appendCompAiActions: function(orchestrator) {
             var self = this;
             var c = this.getContainer();
@@ -402,4 +474,3 @@
 
     window.uiRenderAgent = ui;
 })();
-
