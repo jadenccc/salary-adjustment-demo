@@ -546,18 +546,19 @@
                 uiRenderAgent.appendUserChoice(userName, flowBtnLabels[action] || action);
 
                 if (action === 'perf') {
-                    // 绩效填报：右侧筛选出3个需要绩效填报的员工，打开第一个
+                    // 修复：先调用 enterActiveTask 确保 activeTask 被正确设置（type='perf'）
+                    // activeTask 是 task.js 中的 let 变量，不挂在 window 上，不能用 window.activeTask 判断
+                    if (typeof enterActiveTask === 'function') {
+                        enterActiveTask('fill1');
+                        // 覆盖 peopleIds 为绩效填报的3个人
+                        if (typeof activeTask !== 'undefined' && activeTask) {
+                            activeTask.peopleIds = PERF_DEMO_IDS.slice();
+                        }
+                    }
+                    // 绩效填报：打开第一个员工的绩效详情
                     var perfPeople = getPeopleByIds(PERF_DEMO_IDS);
                     if (perfPeople.length > 0) {
                         actionAgent.openPersonById(perfPeople[0].id, 'performance');
-                    }
-                    // 如果有 enterActiveTask，筛选出这3个人
-                    if (typeof enterActiveTask === 'function' && window.activeTask) {
-                        // 更新 activeTask 的 peopleIds 为绩效填报的3个人
-                        window.activeTask.peopleIds = PERF_DEMO_IDS.slice();
-                        if (typeof renderScatterView === 'function' && window.currentView === 'scatter') renderScatterView();
-                        if (typeof renderTableView === 'function' && window.currentView === 'table') renderTableView();
-                        if (typeof renderGridView === 'function' && window.currentView === 'grid') renderGridView();
                     }
                     uiRenderAgent.appendText('已为你打开绩效填报表单，请依次填写以下 3 位员工的绩效并保存：', 'ai');
                     self._perfTableActive = true;

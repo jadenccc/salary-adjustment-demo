@@ -49,12 +49,12 @@
             <div class="canvas-content">
                 <!-- ===== 共享头部（宽表 & 画布通用） ===== -->
                 <div id="sharedHeader" class="shared-header">
-                    <!-- 顶部标题栏 -->
+                    <!-- 第一层：顶部标题栏 -->
                     <div class="wt-title-bar">
                         <span class="wt-title-text">2026年4月薪酬回顾</span>
                         <a class="wt-history-link" href="javascript:void(0)">≡ 查看历史周期</a>
                     </div>
-                    <!-- 视角信息栏 -->
+                    <!-- 第二层：视角切换 + 四个指标 + 视图切换tab -->
                     <div class="wt-perspective-bar">
                         <div class="wt-perspective-left">
                             <div class="wt-avatar" id="wtAvatar"></div>
@@ -66,28 +66,16 @@
                                 <div class="wt-perspective-org" id="wtPerspectiveOrg">企业工程与效能组/企业效能组/信息系统组/后端研发组/mi岗组</div>
                             </div>
                         </div>
-                        <div class="wt-stats-cards">
-                            <div class="wt-stat-card">
-                                <div class="wt-stat-label">实际调薪人数</div>
-                                <div class="wt-stat-value" id="wtStatAdjusted">0 / <span id="wtStatTotal">0</span></div>
-                            </div>
-                            <div class="wt-stat-card">
-                                <div class="wt-stat-label">人均涨幅 <span class="wt-stat-info" title="人均涨幅说明">ⓘ</span></div>
-                                <div class="wt-stat-value" id="wtStatAvgRaise">0.0%</div>
-                            </div>
-                            <div class="wt-stat-card">
-                                <div class="wt-stat-label">标记异常人数 <span class="wt-stat-info" title="标记异常人数说明">ⓘ</span></div>
-                                <div class="wt-stat-value" id="wtStatAnomaly">0</div>
-                            </div>
-                            <div class="wt-stat-card">
-                                <div class="wt-stat-label">连续调薪人数</div>
-                                <div class="wt-stat-value" id="wtStatConsecutive">0</div>
-                            </div>
+                        <div class="wt-view-tabs">
+                            <button type="button" class="wt-view-tab active" id="wtViewTabTable" onclick="switchToTableView()">宽表视图</button>
+                            <button type="button" class="wt-view-tab" id="wtViewTabCanvas" onclick="switchToCanvasView()">白板视图</button>
                         </div>
                     </div>
-                    <!-- 筛选栏 -->
-                    <div class="wt-filter-bar">
-                        <div class="wt-filter-left">
+                    <!-- 第三层：人数统计 + 筛选器 + 操作按钮 -->
+                    <div class="wt-toolbar-bar">
+                        <div class="wt-toolbar-left">
+                            <span class="wt-summary-text">共计 <strong class="wt-summary-count" id="wtSummaryTotal">0</strong> 人，已选 <strong class="wt-summary-count" id="wtSummarySelected">0</strong> 人</span>
+                            <div class="wt-toolbar-divider"></div>
                             <select class="wt-filter-select" id="wtFilterNode">
                                 <option value="">流程节点</option>
                                 <option value="fill">待填报</option>
@@ -104,18 +92,10 @@
                             <label class="wt-filter-checkbox"><input type="checkbox" id="wtFilterAdjustedOnly"> 仅调薪人员</label>
                             <label class="wt-filter-checkbox"><input type="checkbox" id="wtFilterWithNotes"> 仅包含小记人员</label>
                         </div>
-                        <div class="wt-filter-right">
-                            <button type="button" class="wt-action-btn wt-action-btn-default" onclick="alert('导出功能')">导出</button>
-                            <button type="button" class="wt-action-btn wt-action-btn-outline" onclick="alert('字段设置')">字段设置</button>
+                        <div class="wt-toolbar-right">
+                            <button type="button" id="wtBtnExport" class="wt-action-btn wt-action-btn-default" onclick="alert('导出功能')">导出</button>
+                            <button type="button" id="wtBtnFieldSettings" class="wt-action-btn wt-action-btn-outline" onclick="alert('字段设置')">字段设置</button>
                             <button type="button" class="wt-action-btn wt-action-btn-primary" onclick="alert('提交')">提交</button>
-                        </div>
-                    </div>
-                    <!-- 统计行 + 视图切换标签 -->
-                    <div class="wt-summary-row">
-                        <span>共计 <strong class="wt-summary-count" id="wtSummaryTotal">0</strong> 人，已选 <strong class="wt-summary-count" id="wtSummarySelected">0</strong> 人</span>
-                        <div class="wt-view-tabs">
-                            <button type="button" class="wt-view-tab active" id="wtViewTabTable" onclick="switchToTableView()">宽表视图</button>
-                            <button type="button" class="wt-view-tab" id="wtViewTabCanvas" onclick="switchToCanvasView()">白板视图</button>
                         </div>
                     </div>
                 </div>

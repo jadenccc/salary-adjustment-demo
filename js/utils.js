@@ -259,6 +259,12 @@ function switchToTableView() {
     if (tabTable) tabTable.classList.add('active');
     if (tabCanvas) tabCanvas.classList.remove('active');
 
+    // 宽表视图显示导出和字段设置按钮
+    var btnExport = document.getElementById('wtBtnExport');
+    var btnFieldSettings = document.getElementById('wtBtnFieldSettings');
+    if (btnExport) btnExport.style.display = '';
+    if (btnFieldSettings) btnFieldSettings.style.display = '';
+
     if (typeof renderTableView === 'function') renderTableView();
 }
 
@@ -285,6 +291,12 @@ function switchToCanvasView() {
     var tabCanvas = document.getElementById('wtViewTabCanvas');
     if (tabTable) tabTable.classList.remove('active');
     if (tabCanvas) tabCanvas.classList.add('active');
+
+    // 白板视图隐藏导出和字段设置按钮
+    var btnExport = document.getElementById('wtBtnExport');
+    var btnFieldSettings = document.getElementById('wtBtnFieldSettings');
+    if (btnExport) btnExport.style.display = 'none';
+    if (btnFieldSettings) btnFieldSettings.style.display = 'none';
 
     if (typeof renderScatterView === 'function') renderScatterView();
 }

@@ -2,7 +2,7 @@
 
 /* ========== 共享头部（宽表 & 画布通用） ========== */
 .shared-header {
-    padding: 0;
+    padding: 0 0 10px;
     background: #f5f6f8;
     flex-shrink: 0;
 }
@@ -40,21 +40,23 @@
     color: var(--primary, #4f46e5);
 }
 
-/* ========== 视角信息栏 ========== */
+/* ========== 第二层：视角信息栏（含视图切换tab） ========== */
 .wt-perspective-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 24px;
+    padding: 12px 24px;
     margin: 12px 24px 0;
     background: #fff;
     border-radius: 10px;
     border: 1px solid #eee;
+    gap: 16px;
 }
 .wt-perspective-left {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
 }
 .wt-avatar {
     width: 40px;
@@ -93,7 +95,7 @@
 .wt-perspective-org {
     font-size: 12px;
     color: #999;
-    max-width: 500px;
+    max-width: 400px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -102,7 +104,9 @@
 /* 统计卡片 */
 .wt-stats-cards {
     display: flex;
-    gap: 32px;
+    gap: 24px;
+    flex: 1;
+    justify-content: center;
 }
 .wt-stat-card {
     text-align: center;
@@ -125,123 +129,19 @@
     color: #1a1a1a;
 }
 
-/* ========== 筛选栏 ========== */
-.wt-filter-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 24px;
-    margin: 12px 24px 0;
-    gap: 12px;
-}
-.wt-filter-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.wt-filter-select {
-    height: 32px;
-    padding: 0 28px 0 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") no-repeat right 10px center;
-    background-size: 10px 6px;
-    font-size: 13px;
-    color: #333;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    outline: none;
-    transition: border-color 0.15s;
-}
-.wt-filter-select:hover,
-.wt-filter-select:focus {
-    border-color: #aaa;
-}
-.wt-filter-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: #555;
-    cursor: pointer;
-    white-space: nowrap;
-}
-.wt-filter-checkbox input[type="checkbox"] {
-    width: 15px;
-    height: 15px;
-    accent-color: var(--primary, #4f46e5);
-    cursor: pointer;
-}
-.wt-filter-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.wt-action-btn {
-    height: 34px;
-    padding: 0 18px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 1px solid transparent;
-    white-space: nowrap;
-}
-.wt-action-btn-default {
-    background: #fff;
-    border-color: #ddd;
-    color: #333;
-}
-.wt-action-btn-default:hover {
-    border-color: #bbb;
-    background: #fafafa;
-}
-.wt-action-btn-outline {
-    background: #fff;
-    border-color: #1a1a1a;
-    color: #1a1a1a;
-}
-.wt-action-btn-outline:hover {
-    background: #f5f5f5;
-}
-.wt-action-btn-primary {
-    background: #1a1a1a;
-    border-color: #1a1a1a;
-    color: #fff;
-}
-.wt-action-btn-primary:hover {
-    background: #333;
-}
-
-/* ========== 统计行 + 视图切换标签 ========== */
-.wt-summary-row {
-    padding: 8px 24px;
-    font-size: 13px;
-    color: #888;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-.wt-summary-count {
-    color: var(--primary, #4f46e5);
-    font-weight: 600;
-}
-
-/* 视图切换标签 */
+/* 视图切换标签（位于第二层右侧） */
 .wt-view-tabs {
     display: flex;
     align-items: center;
     gap: 0;
-    margin-left: 16px;
+    flex-shrink: 0;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     overflow: hidden;
     background: #f5f6f8;
 }
 .wt-view-tab {
-    padding: 4px 16px;
+    padding: 5px 18px;
     font-size: 13px;
     color: #666;
     cursor: pointer;
@@ -250,7 +150,7 @@
     font-weight: 500;
     transition: all 0.15s;
     white-space: nowrap;
-    line-height: 24px;
+    line-height: 22px;
 }
 .wt-view-tab:not(:last-child) {
     border-right: 1px solid #e0e0e0;
@@ -262,6 +162,120 @@
     background: #fff;
     color: var(--primary, #4f46e5);
     font-weight: 600;
+}
+
+/* ========== 第三层：工具栏（人数统计 + 筛选器 + 操作按钮） ========== */
+.wt-toolbar-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    margin: 8px 0 0;
+    height: 40px;
+    gap: 12px;
+}
+.wt-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+.wt-summary-text {
+    font-size: 13px;
+    color: #888;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.wt-summary-count {
+    color: var(--primary, #4f46e5);
+    font-weight: 600;
+}
+.wt-toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background: #e5e5e5;
+    flex-shrink: 0;
+    margin: 0 2px;
+}
+.wt-filter-select {
+    height: 30px;
+    padding: 0 26px 0 10px;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    background: #fafafa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") no-repeat right 8px center;
+    background-size: 9px 5px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: border-color 0.15s;
+    flex-shrink: 0;
+}
+.wt-filter-select:hover,
+.wt-filter-select:focus {
+    border-color: #bbb;
+    background-color: #fff;
+}
+.wt-filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.wt-filter-checkbox input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--primary, #4f46e5);
+    cursor: pointer;
+}
+.wt-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.wt-action-btn {
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.wt-action-btn-default {
+    background: #fafafa;
+    border-color: #e5e5e5;
+    color: #444;
+}
+.wt-action-btn-default:hover {
+    border-color: #bbb;
+    background: #f0f0f0;
+}
+.wt-action-btn-outline {
+    background: #fafafa;
+    border-color: #1a1a1a;
+    color: #1a1a1a;
+}
+.wt-action-btn-outline:hover {
+    background: #f0f0f0;
+}
+.wt-action-btn-primary {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    color: #fff;
+}
+.wt-action-btn-primary:hover {
+    background: #333;
 }
 
 /* ========== 表格容器 ========== */
