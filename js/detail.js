@@ -1,13 +1,18 @@
-/* === detail.js === 右侧详情面板渲染（使用 drawer 弹窗，参照 cursor_workspace） */
+/* === detail.js === 右侧详情面板渲染（使用 drawer 弹窗） */
+
+/* ─── Drawer 事件绑定（IIFE，页面加载时执行） ─── */
 
 (function() {
-    // 绑定 drawer 事件（关闭按钮、遮罩、tab 切换）
+    /**
+     * 绑定 drawer 基础事件：关闭按钮、遮罩点击、tab 切换、薪酬/备注输入同步
+     */
     function bindDrawer() {
         var closeBtn = document.getElementById('drawerClose');
         var overlay = document.getElementById('drawerOverlay');
         if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
         if (overlay) overlay.addEventListener('click', closeDrawer);
 
+        // Tab 切换
         var tabs = document.querySelectorAll('.drawer-tab');
         for (var i = 0; i < tabs.length; i++) {
             tabs[i].addEventListener('click', function() {
@@ -22,7 +27,7 @@
             });
         }
 
-        // 薪酬填报理由：输入时同步到 selectedEmployee
+        // 备注输入：同步到 selectedEmployee.managerNote
         var basicRemarkText = document.getElementById('basicRemarkText');
         if (basicRemarkText) {
             basicRemarkText.addEventListener('input', function() {
@@ -33,6 +38,7 @@
             });
         }
 
+        // 调薪原因输入：同步到 selectedEmployee.adjustmentReason
         var salReasonText = document.getElementById('salReasonText');
         if (salReasonText) {
             salReasonText.addEventListener('input', function() {
@@ -43,7 +49,10 @@
             });
         }
 
-        // 薪酬提报：调整额/涨幅变更时同步到 emp，更新画布纵轴位置
+        /**
+         * 薪酬提报：调整额/涨幅变更时同步到 emp，更新画布横轴位置
+         * 以涨幅为准（与画布横轴一致），调整额仅作展示同步
+         */
         function syncSalaryFromInputs() {
             if (typeof selectedEmployee === 'undefined' || !selectedEmployee || !selectedEmployee.salary) return;
             var emp = selectedEmployee;
@@ -52,10 +61,7 @@
             var salAfterAmount = document.getElementById('salAfterAmount');
             if (!salRaisePercent || !salAdjustAmount) return;
             var pctVal = parseFloat(salRaisePercent.value);
-            var amountVal = parseFloat(salAdjustAmount.value);
             if (isNaN(pctVal)) pctVal = 0;
-            if (isNaN(amountVal)) amountVal = 0;
-            // 以涨幅为准（与画布纵轴一致），调整额仅作展示同步
             var newAdj = Math.round(pctVal * 10) / 10;
             emp.adjustment = newAdj;
             salAdjustAmount.value = Math.round(emp.salary * (newAdj / 100));
@@ -99,10 +105,15 @@
         }
     }
 
-    // 面谈子 tab、问题记录、To-Do、跟进事项（参照 cursor_workspace）
+    /**
+     * 绑定面谈子 tab、问题记录、To-Do、跟进事项交互
+     */
     function bindInterviewForm() {
         var tabItems = document.querySelectorAll('.itv-tab-item');
-        var panels = { perf: document.getElementById('itvPerf'), salary: document.getElementById('itvSalary') };
+        var panels = {
+            perf: document.getElementById('itvPerf'),
+            salary: document.getElementById('itvSalary')
+        };
         for (var i = 0; i < tabItems.length; i++) {
             (function(tab) {
                 tab.addEventListener('click', function() {
@@ -117,6 +128,12 @@
             })(tabItems[i]);
         }
 
+        /**
+         * 绑定单选按钮组：选中指定值时显示对应区域
+         * @param {string} groupName - radio name 属性
+         * @param {string} showValue - 触发显示的 value
+         * @param {string} wrapId - 目标容器 ID
+         */
         function bindRadioToggle(groupName, showValue, wrapId) {
             var radios = document.querySelectorAll('input[name="' + groupName + '"]');
             var wrap = document.getElementById(wrapId);
@@ -131,7 +148,8 @@
         }
         bindRadioToggle('perfFollowUp', 'yes', 'perfFollowUpWrap');
         bindRadioToggle('salFollowUp', 'yes', 'salFollowUpWrap');
-        // 问题记录：有问题(已解决)或(未解决)时显示，由 fixItvRecordWrap 处理
+
+        // 问题记录：有问题(已解决)或(未解决)时显示记录区域
         (function() {
             function updatePerf() {
                 var c = document.querySelector('input[name="perfItvStatus"]:checked');
@@ -147,6 +165,11 @@
             document.querySelectorAll('input[name="salItvStatus"]').forEach(function(r) { r.addEventListener('change', updateSal); });
         })();
 
+        /**
+         * 绑定 textarea 字数计数器
+         * @param {string} taId - textarea 元素 ID
+         * @param {string} ctId - 计数显示元素 ID
+         */
         function bindCounter(taId, ctId) {
             var ta = document.getElementById(taId);
             var ct = document.getElementById(ctId);
@@ -157,6 +180,11 @@
         bindCounter('salItvRecord', 'salItvRecordCount');
         bindCounter('salFollowText', 'salFollowCount');
 
+        /**
+         * 绑定 To-Do 表格的新增/删除行功能
+         * @param {string} addId - 新增按钮 ID
+         * @param {string} bodyId - tbody 元素 ID
+         */
         function bindTodo(addId, bodyId) {
             var addBtn = document.getElementById(addId);
             var tbody = document.getElementById(bodyId);
@@ -165,7 +193,12 @@
                 var rows = tbody.querySelectorAll('tr');
                 var idx = rows.length + 1;
                 var tr = document.createElement('tr');
-                tr.innerHTML = '<td>' + idx + '</td><td><input type="text" class="itv-table-input" placeholder="请输入"></td><td><input type="text" class="itv-table-input" placeholder="请输入"></td><td><input type="text" class="itv-table-input" placeholder="请输入"></td><td><button class="itv-del-btn" data-action="delRow">删除</button></td>';
+                tr.innerHTML =
+                    '<td>' + idx + '</td>' +
+                    '<td><input type="text" class="itv-table-input" placeholder="请输入"></td>' +
+                    '<td><input type="text" class="itv-table-input" placeholder="请输入"></td>' +
+                    '<td><input type="text" class="itv-table-input" placeholder="请输入"></td>' +
+                    '<td><button class="itv-del-btn" data-action="delRow">删除</button></td>';
                 tbody.appendChild(tr);
             });
             tbody.addEventListener('click', function(e) {
@@ -180,7 +213,9 @@
         bindTodo('salTodoAdd', 'salTodoBody');
     }
 
-    // 职级上下调 + 提报理由字数统计
+    /**
+     * 绑定职级上下调按钮 + 提报理由字数统计
+     */
     function bindRankForm() {
         var RANK_LEVELS = ['1-1','1-2','1-3','2-1','2-2','2-3','3-1','3-2','3-3','4-1','4-2','4-3','5-1','5-2','5-3'];
         var currentLevel = '3-1';
@@ -190,9 +225,9 @@
         var downBtn = document.getElementById('rankDownBtn');
         var targetEl = document.getElementById('rankTargetLevel');
         var targetStep = document.getElementById('rankTargetStep');
-        var currentEl = document.getElementById('rankCurrentLevel');
         if (!upBtn || !downBtn || !targetEl) return;
 
+        /** 更新职级调整显示文案和样式 */
         function updateDisplay() {
             var targetIdx = currentIdx + offset;
             if (targetIdx < 0) targetIdx = 0;
@@ -224,14 +259,19 @@
         if (rankText && rankCount) rankText.addEventListener('input', function() { rankCount.textContent = rankText.value.length; });
     }
 
-    // drawer 左右切换人员 + 绩效保存
+    /**
+     * 绑定 drawer 左右切换人员按钮
+     */
     function bindDrawerNav() {
         var prevBtn = document.getElementById('drawerNavPrev');
         var nextBtn = document.getElementById('drawerNavNext');
         if (prevBtn) prevBtn.addEventListener('click', function() { if (typeof navigateEmployee === 'function') navigateEmployee(-1); });
         if (nextBtn) nextBtn.addEventListener('click', function() { if (typeof navigateEmployee === 'function') navigateEmployee(1); });
     }
-    // 绩效回顾保存：标记已填报，移除卡片遮罩，重新渲染
+
+    /**
+     * 绑定绩效回顾保存按钮：标记已填报，移除卡片遮罩，重新渲染
+     */
     function bindPerfSave() {
         var btn = document.getElementById('perfSave');
         if (!btn) return;
@@ -256,7 +296,10 @@
             }
         });
     }
-    // 绩效回顾锚点导航
+
+    /**
+     * 绑定绩效回顾锚点导航（点击跳转到对应 section）
+     */
     function bindPerfAnchor() {
         var nav = document.getElementById('perfAnchorNav');
         if (!nav) return;
@@ -277,6 +320,7 @@
         }
     }
 
+    /** 初始化所有 drawer 内部交互绑定 */
     function init() {
         bindDrawer();
         bindDrawerNav();
@@ -292,7 +336,13 @@
     }
 })();
 
-// 将 V10 的 emp 映射为 drawer 所需格式
+/* ─── 数据转换 ─── */
+
+/**
+ * 将 V10 员工对象映射为 drawer 所需格式
+ * @param {Object} emp - 员工对象（来自 employees 数组）
+ * @returns {Object} drawer 人员对象
+ */
 function empToPerson(emp) {
     var perfMap = { '达到': 'meet', '略超': 'above', '超出': 'exceed', '略低': 'below', '低于': 'low' };
     var tierMap = { '明星员工': 'T0', '核心骨干': 'T1', '稳定发展': 'T2', '潜力新人': 'T3', '待提升': 'T3', '激活': 'T2' };
@@ -314,10 +364,18 @@ function empToPerson(emp) {
         workAge: '--',
         manager: '--',
         workCity: '--',
-        perf: [perfMap[(perfTags[0] && perfTags[0].text)] || 'meet', perfMap[(perfTags[1] && perfTags[1].text)] || 'meet']
+        perf: [
+            perfMap[(perfTags[0] && perfTags[0].text)] || 'meet',
+            perfMap[(perfTags[1] && perfTags[1].text)] || 'meet'
+        ]
     };
 }
 
+/**
+ * 计算员工在职时长（年+月）
+ * @param {string} joinDate - 入职日期字符串（如 '2023-03-01'）
+ * @returns {string} 在职时长描述，如 '2年3个月'
+ */
 function calcTenure(joinDate) {
     if (!joinDate || joinDate === '--') return '--';
     var join = new Date(joinDate);
@@ -328,12 +386,18 @@ function calcTenure(joinDate) {
     return years + '年' + months + '个月';
 }
 
-/** 渲染抽屉左侧人员列表（仅待填报任务时显示） */
+/* ─── 抽屉人员列表 ─── */
+
+/**
+ * 渲染抽屉左侧人员列表（仅待填报任务时显示）
+ * @param {number} selectedEmpId - 当前选中的员工 ID（高亮显示）
+ */
 function renderDrawerPersonList(selectedEmpId) {
     var listEl = document.getElementById('drawerPersonListBody');
     if (!listEl) return;
     listEl.innerHTML = '';
-    if (typeof activeTask === 'undefined' || !activeTask || activeTask.role !== 'fill' || !activeTask.peopleIds || activeTask.peopleIds.length === 0) return;
+    if (typeof activeTask === 'undefined' || !activeTask || activeTask.role !== 'fill'
+        || !activeTask.peopleIds || activeTask.peopleIds.length === 0) return;
     var allEmps = typeof employees !== 'undefined' ? employees : [];
     var filtered = allEmps.filter(function(e) {
         return activeTask.peopleIds.indexOf(e.id) >= 0;
@@ -343,7 +407,9 @@ function renderDrawerPersonList(selectedEmpId) {
         var card = document.createElement('div');
         card.className = 'drawer-person-card' + (e.id === selectedEmpId ? ' selected' : '');
         card.dataset.empId = e.id;
-        var cardContent = typeof buildPersonCardContent === 'function' ? buildPersonCardContent(e, { compact: true, showDelta: true, showOriginalLine: false }) : '';
+        var cardContent = typeof buildPersonCardContent === 'function'
+            ? buildPersonCardContent(e, { compact: true, showDelta: true, showOriginalLine: false })
+            : '';
         card.innerHTML = cardContent || '';
         card.addEventListener('click', function() {
             if (typeof showDetail === 'function') showDetail(e);
@@ -360,12 +426,23 @@ function renderDrawerPersonList(selectedEmpId) {
     }
 }
 
+/* ─── 抽屉打开/关闭 ─── */
+
+/**
+ * 打开员工详情抽屉并填充所有字段
+ * @param {Object} emp - 员工对象（原始格式或 drawer 格式均可）
+ * @param {string} [initialTab='basic'] - 初始激活的 tab（'basic'/'salary'/'performance' 等）
+ * @param {Object} [opts] - 附加选项
+ * @param {boolean} [opts.scrollToReason] - 是否滚动到调薪原因区域
+ * @param {boolean} [opts.scrollToRemark] - 是否滚动到备注区域
+ */
 function openDrawer(emp, initialTab, opts) {
     var person = typeof emp.rank !== 'undefined' ? emp : empToPerson(emp);
 
     document.getElementById('drawerName').textContent = person.name;
     document.getElementById('drawerDept').textContent = (person.dept || '') + ' · ' + person.rank;
 
+    // 状态标签 + 截止日期
     var statusTag = document.getElementById('drawerStatusTag');
     var deadlineEl = document.getElementById('drawerDeadline');
     if (statusTag && deadlineEl) {
@@ -380,6 +457,7 @@ function openDrawer(emp, initialTab, opts) {
         }
     }
 
+    // 梯队标签
     var tierTag = document.getElementById('drawerTierTag');
     if (tierTag) {
         var tierLabels = { 'T0': 'T0骨干', 'T1': 'T1资深', 'T2': 'T2产能', 'T3': 'T3基础' };
@@ -389,6 +467,7 @@ function openDrawer(emp, initialTab, opts) {
         tierTag.className = 'drawer-tier-tag ' + (tierClasses[t] || 'tier-t2');
     }
 
+    // 基本信息字段
     var elOrgPath = document.getElementById('info-orgPath');
     if (elOrgPath) elOrgPath.textContent = person.orgPath || person.dept || '--';
     var elCareerPath = document.getElementById('info-careerPath');
@@ -408,12 +487,13 @@ function openDrawer(emp, initialTab, opts) {
     var elWorkCity = document.getElementById('info-workCity');
     if (elWorkCity) elWorkCity.textContent = person.workCity || '--';
 
+    // 绩效信息
     var perfLevelMap = {
         'exceed': { label: '超出预期', cls: 'perf-level-exceed' },
-        'above': { label: '略超预期', cls: 'perf-level-above' },
-        'meet': { label: '符合预期', cls: 'perf-level-meet' },
-        'below': { label: '略低预期', cls: 'perf-level-below' },
-        'low': { label: '低于预期', cls: 'perf-level-low' }
+        'above':  { label: '略超预期', cls: 'perf-level-above' },
+        'meet':   { label: '符合预期', cls: 'perf-level-meet' },
+        'below':  { label: '略低预期', cls: 'perf-level-below' },
+        'low':    { label: '低于预期', cls: 'perf-level-low' }
     };
     var perfPeriods = ['2025年上半年', '2024年下半年'];
     var perfContents = ['工作态度积极，项目交付质量高', '按时完成既定目标'];
@@ -441,6 +521,7 @@ function openDrawer(emp, initialTab, opts) {
         if (contentEl) contentEl.textContent = isPending ? '' : (perfContents[pi] || '--');
     }
 
+    // 薪酬字段
     var salCurrent = document.getElementById('salCurrent');
     if (salCurrent && person.salary) salCurrent.textContent = '¥' + person.salary.toLocaleString('zh-CN');
 
@@ -454,9 +535,11 @@ function openDrawer(emp, initialTab, opts) {
     var salReasonText = document.getElementById('salReasonText');
     if (salReasonText && emp) salReasonText.value = (emp.adjustmentReason || '').trim();
 
+    // 绩效评价 select
     var perfSummaryLeaderSelect = document.getElementById('perfSummaryLeaderSelect');
     if (perfSummaryLeaderSelect && emp) perfSummaryLeaderSelect.value = emp.leaderSummaryEval || '';
 
+    // 激活指定 tab
     var allTabs = document.querySelectorAll('.drawer-tab');
     var allPanels = document.querySelectorAll('.drawer-content .tab-panel');
     for (var j = 0; j < allTabs.length; j++) allTabs[j].classList.remove('active');
@@ -467,10 +550,12 @@ function openDrawer(emp, initialTab, opts) {
     if (tabBtn) tabBtn.classList.add('active');
     if (tabPanel) tabPanel.classList.add('active');
 
+    // 打开抽屉
     var drawer = document.getElementById('drawer');
     drawer.classList.add('open');
     document.getElementById('drawerOverlay').classList.add('open');
 
+    // 填报模式：显示左侧人员列表
     var isFillMode = typeof activeTask !== 'undefined' && activeTask && activeTask.role === 'fill';
     if (isFillMode) {
         drawer.classList.add('drawer-with-list');
@@ -482,6 +567,7 @@ function openDrawer(emp, initialTab, opts) {
         if (listBody) listBody.innerHTML = '';
     }
 
+    // 滚动定位
     if (opts && opts.scrollToReason) {
         var reasonEl = document.getElementById('salReasonArea');
         if (reasonEl) {
@@ -498,6 +584,9 @@ function openDrawer(emp, initialTab, opts) {
     if (basicRemarkText && emp) basicRemarkText.value = (emp.managerNote || '').trim();
 }
 
+/**
+ * 关闭员工详情抽屉
+ */
 function closeDrawer() {
     var drawer = document.getElementById('drawer');
     var overlay = document.getElementById('drawerOverlay');
@@ -505,11 +594,24 @@ function closeDrawer() {
     if (overlay) overlay.classList.remove('open');
 }
 
+/**
+ * 判断抽屉当前是否处于打开状态
+ * @returns {boolean}
+ */
 function isDrawerOpen() {
     var drawer = document.getElementById('drawer');
     return drawer && drawer.classList.contains('open');
 }
 
+/* ─── 详情入口 ─── */
+
+/**
+ * 打开员工详情（设置 selectedEmployee，高亮卡片，打开抽屉）
+ * @param {Object} emp - 员工对象
+ * @param {boolean} [scrollToReason] - 是否滚动到调薪原因区域
+ * @param {boolean} [scrollToNote] - 是否滚动到备注区域
+ * @param {string} [initialTabOverride] - 强制指定初始 tab
+ */
 function showDetail(emp, scrollToReason, scrollToNote, initialTabOverride) {
     selectedEmployee = emp;
 
@@ -525,12 +627,16 @@ function showDetail(emp, scrollToReason, scrollToNote, initialTabOverride) {
     openDrawer(emp, initialTab, opts);
 }
 
+/**
+ * 切换右侧面板展开/收起状态（审批模式下收起时清除高亮）
+ */
 function togglePanel() {
     var panel = document.getElementById('rightPanel');
     if (!panel) return;
     var wasOpen = !panel.classList.contains('collapsed');
     panel.classList.toggle('collapsed');
-    if (wasOpen && typeof activeTask !== 'undefined' && activeTask && activeTask.role === 'approve' && typeof activePersonId !== 'undefined' && activePersonId != null) {
+    if (wasOpen && typeof activeTask !== 'undefined' && activeTask && activeTask.role === 'approve'
+        && typeof activePersonId !== 'undefined' && activePersonId != null) {
         activePersonId = null;
         document.querySelectorAll('.scatter-card').forEach(function(c) { c.classList.remove('approval-highlight'); });
         var tbody = document.getElementById('approvalListBody');
@@ -538,13 +644,18 @@ function togglePanel() {
     }
 }
 
+/**
+ * 在当前筛选/任务人员列表中切换到上一个或下一个员工
+ * @param {number} direction - 方向：-1 上一个，1 下一个
+ */
 function navigateEmployee(direction) {
     if (!selectedEmployee) return;
     var filtered;
     if (typeof activeTask !== 'undefined' && activeTask && activeTask.peopleIds && activeTask.peopleIds.length > 0) {
         var taskIdSet = {};
         activeTask.peopleIds.forEach(function(id) { taskIdSet[id] = true; });
-        filtered = (typeof getFilteredEmployees === 'function' ? getFilteredEmployees() : employees || []).filter(function(e) { return taskIdSet[e.id]; });
+        filtered = (typeof getFilteredEmployees === 'function' ? getFilteredEmployees() : employees || [])
+            .filter(function(e) { return taskIdSet[e.id]; });
     } else {
         filtered = typeof getFilteredEmployees === 'function' ? getFilteredEmployees() : employees;
     }

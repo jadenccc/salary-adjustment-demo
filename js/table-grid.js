@@ -1,4 +1,4 @@
-/* === table-grid.js === 表格视图 + 九宫格视图渲染 */
+/* === table-grid.js === 表格视图（宽表）+ 九宫格视图渲染 */
 
 const WIDE_TABLE_COLUMNS = [
     { group: '', label: '待办状态', key: 'todoStatus' },
@@ -59,9 +59,12 @@ const WIDE_TABLE_COLUMNS = [
     { group: '薪酬提报区', label: '建议关注', key: 'focusSuggestion' }
 ];
 
-/** 宽表已选中的员工 ID 集合 */
-var wtSelectedIds = new Set();
+/** 宽表已选中的员工 ID 集合（跨渲染周期保持选中状态） */
+const wtSelectedIds = new Set();
 
+/**
+ * 构建宽表双行表头（分组行 + 字段行）并绑定全选复选框事件
+ */
 function buildWideTableHeader() {
     const groupRow = document.getElementById('tableHeadGroupRow');
     const fieldRow = document.getElementById('tableHeadFieldRow');
@@ -112,6 +115,12 @@ function buildWideTableHeader() {
     }
 }
 
+/**
+ * 获取宽表单元格显示值
+ * @param {Object} emp - 员工对象
+ * @param {string} key - 列 key
+ * @returns {string}
+ */
 function getWideTableCellValue(emp, key) {
     const name = (emp && emp.name) || '--';
     const level = (emp && emp.level) || '--';
@@ -184,6 +193,9 @@ function getWideTableCellValue(emp, key) {
     return map[key] == null || map[key] === '' ? '--' : map[key];
 }
 
+/**
+ * 渲染宽表视图（清空并重建所有行）
+ */
 function renderTableView() {
     const tbody = document.getElementById('tableBody');
     const filtered = getFilteredEmployees();
@@ -249,7 +261,10 @@ function renderTableView() {
     updateWtStats(filtered);
 }
 
-/** 更新宽表底部统计行 */
+/**
+ * 更新宽表底部统计行（总人数 / 已选人数）
+ * @param {number} [totalCount] - 当前过滤后总人数
+ */
 function updateWtSummary(totalCount) {
     const totalEl = document.getElementById('wtSummaryTotal');
     const selectedEl = document.getElementById('wtSummarySelected');
@@ -257,7 +272,10 @@ function updateWtSummary(totalCount) {
     if (selectedEl) selectedEl.textContent = wtSelectedIds.size;
 }
 
-/** 更新宽表顶部统计卡片 */
+/**
+ * 更新宽表顶部统计卡片（已调整人数、平均涨幅、异常数、连续未调薪数）
+ * @param {Object[]} [filtered] - 过滤后员工列表，不传则重新获取
+ */
 function updateWtStats(filtered) {
     if (!filtered) filtered = getFilteredEmployees();
     const total = filtered.length;
@@ -277,8 +295,9 @@ function updateWtStats(filtered) {
     if (elConsec) elConsec.textContent = consecutiveCount;
 }
 
-// 渲染九宫格
-
+/**
+ * 渲染九宫格视图（按梯队分类展示员工）
+ */
 function renderGridView() {
     const grid = document.getElementById('nineGrid');
     const filtered = getFilteredEmployees();
@@ -328,21 +347,3 @@ function renderGridView() {
 }
 
 
-function adjustSalary(empId, value) {
-    const emp = employees.find(e => e.id === empId);
-    if (emp) {
-        emp.adjustment = parseInt(value);
-        updateStats();
-        
-        // 如果当前显示了该员工详情，更新详情面板
-        if (selectedEmployee && selectedEmployee.id === empId) {
-            showDetail(emp);
-        }
-    }
-}
-
-// 应用建议
-
-function selectAll(checkbox) {
-    // 宽表重制后默认不使用行内多选框，保留函数以兼容历史调用
-}

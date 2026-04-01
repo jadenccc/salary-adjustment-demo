@@ -1,5 +1,12 @@
 /* === scatter.js === 散点图渲染 + 坐标计算 + 部门结构 */
 
+/* ─── 部门/梯队辅助 ─── */
+
+/**
+ * 将员工部门名映射为主部门分类
+ * @param {string} empDept - 员工部门名称
+ * @returns {string} 主部门名称
+ */
 function getMainDept(empDept) {
     const rdDepts = ['后端研发', '前端研发', '架构', '算法', '安全', '技术管理'];
     if (rdDepts.includes(empDept) || empDept.includes('研发')) return '研发部门';
@@ -8,25 +15,40 @@ function getMainDept(empDept) {
     return '其他部门';  // 运维、数据等
 }
 
+/** 散点图卡片槽位宽度（px） */
 const SLOT_WIDTH = 118;
-const SLOT_HEIGHT = 180;  // 纵轴每个梯队/职级槽位的最小高度（加大以便同梯队卡片纵向错开）
+/** 纵轴每个梯队/职级槽位的最小高度（px），加大以便同梯队卡片纵向错开 */
+const SLOT_HEIGHT = 180;
 
-/** 将 emp.tier 映射为 T0/T1/T2/T3（梯队模式用） */
+/**
+ * 将 emp.tier 映射为 T0/T1/T2/T3（梯队模式用）
+ * @param {Object} emp - 员工对象
+ * @returns {string} 梯队标识，如 'T0'/'T1'/'T2'/'T3'
+ */
 function getEmpTier(emp) {
     if (!emp || !emp.tier) return 'T2';
     return (typeof LABEL_TO_TIER !== 'undefined' && LABEL_TO_TIER[emp.tier]) ? LABEL_TO_TIER[emp.tier] : 'T2';
 }
 
-// 根据筛选结果获取可见梯队/职级结构（扁平，不区分部门）
+/* ─── 可见结构计算 ─── */
+
+/**
+ * 根据当前筛选结果获取可见梯队/职级结构（扁平，不区分部门）
+ * @returns {Array} 可见结构数组，格式 [{dept, levels}]
+ */
 function getVisibleDeptStruct() {
     const filtered = getFilteredEmployees();
     return getVisibleDeptStructFromList(filtered);
 }
-// 根据指定员工列表计算可见梯队/职级结构（扁平，不区分部门）
+
+/**
+ * 根据指定员工列表计算可见梯队/职级结构（扁平，不区分部门）
+ * @param {Array} empList - 员工列表
+ * @returns {Array} 可见结构数组，格式 [{dept: '_all', levels: [...]}]
+ */
 function getVisibleDeptStructFromList(empList) {
     const isTier = (typeof axisXLabelType !== 'undefined' && axisXLabelType === 'tier');
-    // 扁平梯队/职级列表（不区分部门）
-    const allLevels = isTier ? ['T0', 'T1', 'T2', 'T3'] : ['P5', 'P6', 'P7', 'P8', 'P9'];
+    const allLevels = isTier ? ['T0', 'T1', 'T2', 'T3'] : ['3-2', '3-1', '2-2', '2-1'];
     const slotsWithCards = new Set();
     if (empList && empList.length > 0) {
         empList.forEach(emp => {
@@ -53,41 +75,67 @@ function getVisibleDeptStructFromList(empList) {
     return [{ dept: '_all', levels: visibleLevels.length > 0 ? visibleLevels : allLevels }];
 }
 
-// 在可见结构内计算Y位置百分比（纵轴为梯队/职级，不区分部门）
+/* ─── 坐标计算 ─── */
+
+/**
+ * 在可见结构内计算 Y 位置百分比（纵轴为梯队/职级，不区分部门）
+ * @param {string} mainDept - 主部门（当前扁平结构下忽略）
+ * @param {string} level - 职级或梯队标识
+ * @param {Array} visibleStruct - 可见结构数组
+ * @param {number} [empId] - 员工 ID，用于槽位内确定性 Y 偏移
+ * @returns {number} Y 位置百分比（0~100）
+ */
 function getYPositionInVisible(mainDept, level, visibleStruct, empId) {
-    // 扁平结构：只有一个段，直接在 levels 中查找
     const seg = visibleStruct[0];
     if (!seg) return 50;
     const totalSlots = seg.levels.length;
     let idx = seg.levels.indexOf(level);
     if (idx < 0) {
-        idx = seg.levels.findIndex(l => parseInt(String(l).slice(1)) >= parseInt(String(level).slice(1)));
-        idx = idx >= 0 ? idx : seg.levels.length - 1;
+        idx = seg.levels.length - 1;
     }
     const centerPct = ((idx + 0.5) / totalSlots) * 100;
     // 基于 empId 在槽位内产生确定性 Y 偏移，让同梯队卡片纵向散开
     if (empId != null) {
-        const slotSpanPct = (1 / totalSlots) * 100;  // 每个槽位占的百分比
-        const jitterRange = slotSpanPct * 0.6;        // 偏移范围为槽位高度的 60%
+        const slotSpanPct = (1 / totalSlots) * 100;   // 每个槽位占的百分比
+        const jitterRange = slotSpanPct * 0.6;         // 偏移范围为槽位高度的 60%
         const hash = ((empId * 2654435761) >>> 0) / 4294967296; // 0~1 确定性哈希
         const offset = (hash - 0.5) * jitterRange;    // -jitterRange/2 ~ +jitterRange/2
         return Math.max(0, Math.min(100, centerPct + offset));
     }
     return centerPct;
 }
-// 兼容旧调用
+
+/**
+ * 兼容旧调用：等同于 getYPositionInVisible
+ * @deprecated 请使用 getYPositionInVisible
+ */
 function getXPositionInVisible(mainDept, level, visibleStruct) {
     return getYPositionInVisible(mainDept, level, visibleStruct);
 }
-/** 获取纵轴全范围（不再按部门限制） */
+
+/**
+ * 获取纵轴全范围（不再按部门限制，始终返回 0~100）
+ * @returns {{minPct: number, maxPct: number}}
+ */
 function getDeptYRange(mainDept, visibleStruct) {
     return { minPct: 0, maxPct: 100 };
 }
-// 兼容旧调用
+
+/**
+ * 兼容旧调用：等同于 getDeptYRange
+ * @deprecated 请使用 getDeptYRange
+ */
 function getDeptXRange(mainDept, visibleStruct) {
     return getDeptYRange(mainDept, visibleStruct);
 }
-/** 根据纵向位置百分比解析出对应的职级/梯队槽位（不区分部门） */
+
+/**
+ * 根据纵向位置百分比解析出对应的职级/梯队槽位（不区分部门）
+ * @param {string} mainDept - 主部门（当前扁平结构下忽略）
+ * @param {number} topPct - 纵向位置百分比（0~100）
+ * @param {Array} visibleStruct - 可见结构数组
+ * @returns {string|null} 职级/梯队标识
+ */
 function topPctToLevelInDept(mainDept, topPct, visibleStruct) {
     const seg = visibleStruct && visibleStruct[0];
     if (!seg || !seg.levels.length) return null;
@@ -95,12 +143,25 @@ function topPctToLevelInDept(mainDept, topPct, visibleStruct) {
     const slotIndex = Math.max(0, Math.min(totalSlots - 1, Math.floor((topPct / 100) * totalSlots)));
     return seg.levels[slotIndex] || seg.levels[0];
 }
-// 兼容旧调用
+
+/**
+ * 兼容旧调用：等同于 topPctToLevelInDept
+ * @deprecated 请使用 topPctToLevelInDept
+ */
 function leftPctToLevelInDept(mainDept, leftPct, visibleStruct) {
     return topPctToLevelInDept(mainDept, leftPct, visibleStruct);
 }
-// 未做任何调整时的位置（残影始终在此）
-// 新布局：leftPct = 薪酬位置（横轴），topPct = 梯队位置（纵轴）
+
+/**
+ * 计算员工未做任何调整时的原始位置（残影始终在此）
+ * 新布局：leftPct = 薪酬位置（横轴），topPct = 梯队位置（纵轴）
+ * @param {Object} emp - 员工对象
+ * @param {Array} visibleStruct - 可见结构数组
+ * @param {number} spanK - 横轴薪酬跨度（K）
+ * @param {string} [overrideLevel] - 覆盖职级/梯队
+ * @param {number} [overrideSalaryK] - 覆盖薪酬（K）
+ * @returns {{leftPct: number, topPct: number}}
+ */
 function getOriginalPositionForEmp(emp, visibleStruct, spanK, overrideLevel, overrideSalaryK) {
     var isTier = (typeof axisXLabelType !== 'undefined' && axisXLabelType === 'tier');
     var level = overrideLevel != null ? overrideLevel : (isTier ? getEmpTier(emp) : emp.level);
@@ -110,6 +171,11 @@ function getOriginalPositionForEmp(emp, visibleStruct, spanK, overrideLevel, ove
     return { leftPct: leftPct, topPct: topPct };
 }
 
+/* ─── 散点图主渲染 ─── */
+
+/**
+ * 渲染散点图视图（清空画布并重新绘制所有卡片、轴标签、网格线、气泡、圈选框）
+ */
 function renderScatterView() {
     removeDragUndoHintVisual();
     const canvas = document.getElementById('chartCanvas');
@@ -124,20 +190,28 @@ function renderScatterView() {
         filtered = filtered.filter(emp => taskIdSet.has(emp.id));
     }
     const visibleStruct = getVisibleDeptStructFromList(filtered);
-    
+
     const totalSlots = visibleStruct.reduce((s, seg) => s + seg.levels.length, 0);
-    // 新布局：纵轴为梯队，画布最小高度按槽位数计算；横轴为薪酬，不再设 minWidth
+    // 纵轴为梯队，画布最小高度按槽位数计算；横轴为薪酬，不再设 minWidth
     const canvasMinHeight = totalSlots * SLOT_HEIGHT;
     canvas.style.minWidth = '';
     canvas.style.minHeight = canvasMinHeight + 'px';
-    
+
     canvas.innerHTML = '';
-    
-    // 纵轴标签：「部门·梯队/职级」下拉切换（放在左侧）
+
+    // 纵轴标签：「梯队/职级」下拉切换（放在左侧）
     var yLabelText = axisXLabelType === 'level' ? '职级' : '梯队';
     var axisYWrap = document.createElement('div');
     axisYWrap.className = 'axis-label-y';
-    axisYWrap.innerHTML = '<span class="axis-y-trigger"><span class="axis-y-current">' + yLabelText + '</span><span class="axis-y-arrow">▾</span></span><div class="axis-y-dropdown"><button type="button" class="axis-y-dropdown-option' + (axisXLabelType === 'level' ? ' active' : '') + '" data-type="level">职级</button><button type="button" class="axis-y-dropdown-option' + (axisXLabelType === 'tier' ? ' active' : '') + '" data-type="tier">梯队</button></div>';
+    axisYWrap.innerHTML =
+        '<span class="axis-y-trigger">' +
+            '<span class="axis-y-current">' + yLabelText + '</span>' +
+            '<span class="axis-y-arrow">▾</span>' +
+        '</span>' +
+        '<div class="axis-y-dropdown">' +
+            '<button type="button" class="axis-y-dropdown-option' + (axisXLabelType === 'level' ? ' active' : '') + '" data-type="level">职级</button>' +
+            '<button type="button" class="axis-y-dropdown-option' + (axisXLabelType === 'tier' ? ' active' : '') + '" data-type="tier">梯队</button>' +
+        '</div>';
     var yTrigger = axisYWrap.querySelector('.axis-y-trigger');
     yTrigger.onclick = function(e) {
         e.stopPropagation();
@@ -160,19 +234,21 @@ function renderScatterView() {
             if (axisXLabelType === t) { axisYWrap.classList.remove('open'); return; }
             axisXLabelType = t;
             axisYWrap.querySelector('.axis-y-current').textContent = t === 'level' ? '职级' : '梯队';
-            axisYWrap.querySelectorAll('.axis-y-dropdown-option').forEach(function(b) { b.classList.toggle('active', b.dataset.type === t); });
+            axisYWrap.querySelectorAll('.axis-y-dropdown-option').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.type === t);
+            });
             axisYWrap.classList.remove('open');
             if (typeof renderScatterView === 'function') renderScatterView();
         };
     });
     canvas.appendChild(axisYWrap);
-    
+
     // 顶部横轴标签：薪酬 (K)
     var axisXLabel = document.createElement('div');
     axisXLabel.className = 'axis-label-x';
     axisXLabel.textContent = '薪酬 (K)';
     canvas.appendChild(axisXLabel);
-    
+
     // 左侧纵轴：扁平梯队/职级标签（不区分部门）
     const axisLeft = document.createElement('div');
     axisLeft.className = 'axis-left';
@@ -185,7 +261,9 @@ function renderScatterView() {
         const isLevelOnly = axisFilterMode === 'levelOnly' && axisFilterTarget === level;
         const isLevelHide = axisFilterMode === 'levelHide' && axisFilterTarget === level;
         const levelDiv = document.createElement('div');
-        levelDiv.className = 'level-segment-y' + (isLevelOnly ? ' active-only' : '') + (isLevelHide ? ' collapsed' : '');
+        levelDiv.className = 'level-segment-y'
+            + (isLevelOnly ? ' active-only' : '')
+            + (isLevelHide ? ' collapsed' : '');
         levelDiv.style.flex = '1';
         levelDiv.style.minHeight = SLOT_HEIGHT + 'px';
         levelDiv.dataset.level = level;
@@ -197,15 +275,20 @@ function renderScatterView() {
         axisLeft.appendChild(levelDiv);
     });
     canvas.appendChild(axisLeft);
-    
+
     // 横轴（薪酬）根据当前可见人员薪资自适应
     const displaySalariesK = filtered.map(emp => emp.salary * (1 + (emp.adjustment || 0) / 100) / 1000);
     let rangeMinK = displaySalariesK.length ? Math.min(...displaySalariesK) : 20;
     let rangeMaxK = displaySalariesK.length ? Math.max(...displaySalariesK) : 60;
     const paddingFactor = activeTask ? 0.18 : 0.1;
     const padding = Math.max(2, (rangeMaxK - rangeMinK) * paddingFactor);
-    if (rangeMaxK - rangeMinK < 1) { rangeMinK = Math.floor(rangeMinK) - 2; rangeMaxK = Math.ceil(rangeMaxK) + 2; }
-    else { rangeMinK = Math.max(0, rangeMinK - padding); rangeMaxK = rangeMaxK + padding; }
+    if (rangeMaxK - rangeMinK < 1) {
+        rangeMinK = Math.floor(rangeMinK) - 2;
+        rangeMaxK = Math.ceil(rangeMaxK) + 2;
+    } else {
+        rangeMinK = Math.max(0, rangeMinK - padding);
+        rangeMaxK = rangeMaxK + padding;
+    }
     salaryAxisMinK = rangeMinK;
     salaryAxisMaxK = rangeMaxK;
     const spanK = salaryAxisMaxK - salaryAxisMinK;
@@ -213,7 +296,7 @@ function renderScatterView() {
     window._lastSpanK = spanK;
     window._lastSalaryAxisMinK = salaryAxisMinK;
     const gridSteps = 5;
-    
+
     // 顶部薪酬刻度标签 + 垂直网格线（薪酬方向）
     const axisTop = document.createElement('div');
     axisTop.className = 'axis-top';
@@ -229,11 +312,11 @@ function renderScatterView() {
         label.className = 'salary-tick-label';
         label.style.left = pct + '%';
         const valueK = salaryAxisMinK + (i / gridSteps) * spanK;
-        label.textContent = (valueK >= 1000 ? (valueK/1000).toFixed(1) + 'M' : valueK.toFixed(0) + 'K');
+        label.textContent = (valueK >= 1000 ? (valueK / 1000).toFixed(1) + 'M' : valueK.toFixed(0) + 'K');
         axisTop.appendChild(label);
     }
     canvas.appendChild(axisTop);
-    
+
     // 水平网格线（梯队之间）
     for (let i = 1; i < totalSlots; i++) {
         const line = document.createElement('div');
@@ -241,7 +324,7 @@ function renderScatterView() {
         line.style.top = (i / totalSlots * 100) + '%';
         canvas.appendChild(line);
     }
-    
+
     // 连接线 SVG
     const connectorSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     connectorSvg.className = 'info-connector-svg';
@@ -249,7 +332,7 @@ function renderScatterView() {
     connectorSvg.setAttribute('preserveAspectRatio', 'none');
     connectorSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:15;';
     canvas.appendChild(connectorSvg);
-    
+
     // 绘制散点（收起分组内的成员不渲染卡片）
     filtered.forEach(emp => {
         const inCollapsed = circleGroups.some(g => circleGroupsCollapsed.has(g.name) && g.empIds.includes(emp.id));
@@ -257,7 +340,7 @@ function renderScatterView() {
         const card = createScatterCard(emp, visibleStruct);
         canvas.appendChild(card);
     });
-    
+
     // 初始位置阴影：首次拖动后显示，点击可复原卡片到初始位置
     var filteredIds = new Set(filtered.map(function(e) { return e.id; }));
     Object.keys(empInitialShadows || {}).forEach(function(empIdStr) {
@@ -272,7 +355,12 @@ function renderScatterView() {
         shadow.style.left = rec.leftPct + '%';
         shadow.style.top = rec.topPct + '%';
         var origK = (rec.origSalaryK != null ? rec.origSalaryK : emp.salary / 1000).toFixed(1);
-        shadow.innerHTML = '<div class="initial-position-shadow-inner"><span class="initial-position-shadow-name">' + (rec.name || emp.name || '').replace(/</g, '&lt;') + '</span><span class="initial-position-shadow-salary">' + origK + 'K</span></div><div class="initial-position-shadow-hint">点击复原</div>';
+        shadow.innerHTML =
+            '<div class="initial-position-shadow-inner">' +
+                '<span class="initial-position-shadow-name">' + (rec.name || emp.name || '').replace(/</g, '&lt;') + '</span>' +
+                '<span class="initial-position-shadow-salary">' + origK + 'K</span>' +
+            '</div>' +
+            '<div class="initial-position-shadow-hint">点击复原</div>';
         shadow.title = '点击复原到初始位置';
         shadow.onclick = function(e) {
             e.stopPropagation();
@@ -280,13 +368,13 @@ function renderScatterView() {
         };
         canvas.appendChild(shadow);
     });
-    
+
     // 信息点气泡与连接线
     drawInfoBubbles(canvas, filtered, connectorSvg, spanK);
-    
+
     // 磁力排斥：构建重叠簇并设置 hover/拖拽展开
     setupMagneticRepulsion(canvas, filtered);
-    
+
     // 圈选后绘制选中区域矩形，可拖动实现整体调薪
     const oldRect = canvas.querySelector('.selection-rect');
     if (oldRect) oldRect.remove();
@@ -295,7 +383,16 @@ function renderScatterView() {
     drawCircleGroupBoxes(canvas);
 }
 
+/* ─── 信息气泡 ─── */
 
+/**
+ * 获取卡片顶边中心点（用于连接线起点计算）
+ * @param {HTMLElement} card - 散点卡片元素
+ * @param {HTMLElement} canvas - 画布容器
+ * @param {number} bubbleLeft - 气泡左侧百分比
+ * @param {number} bubbleTop - 气泡顶部百分比
+ * @returns {{x1: number, y1: number}} 连接线起点坐标（百分比）
+ */
 function getCardTopEdgePoint(card, canvas, bubbleLeft, bubbleTop) {
     const rect = canvas.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
@@ -310,7 +407,10 @@ function getCardTopEdgePoint(card, canvas, bubbleLeft, bubbleTop) {
     return { x1, y1: cardTopPct };
 }
 
-
+/**
+ * 拖拽后更新单个卡片对应的信息气泡位置和连接线
+ * @param {HTMLElement} card - 散点卡片元素
+ */
 function updateBubbleAndLineForCard(card) {
     const canvas = card.closest('#chartCanvas') || card.parentElement;
     if (!canvas) return;
@@ -335,7 +435,13 @@ function updateBubbleAndLineForCard(card) {
     line.setAttribute('y2', bubbleTop);
 }
 
-
+/**
+ * 绘制所有员工的信息点气泡及连接线
+ * @param {HTMLElement} canvas - 画布容器
+ * @param {Array} filtered - 当前可见员工列表
+ * @param {SVGElement} connectorSvg - 连接线 SVG 容器
+ * @param {number} spanK - 横轴薪酬跨度（K）
+ */
 function drawInfoBubbles(canvas, filtered, connectorSvg, spanK) {
     const cards = canvas.querySelectorAll('.scatter-card');
     const cardMap = {};
@@ -380,16 +486,27 @@ function drawInfoBubbles(canvas, filtered, connectorSvg, spanK) {
         bubble.style.left = bubbleLeft + '%';
         bubble.style.top = bubbleTop + '%';
         bubble.style.transform = 'translate(-50%, -50%)';
-        bubble.innerHTML = '<div class="info-bubble-inner"><span class="lb-icon">' + INFO_POINT_TYPES[pt.type].icon + '</span><span class="lb-text">' + pt.text + '</span></div>';
+        bubble.innerHTML =
+            '<div class="info-bubble-inner">' +
+                '<span class="lb-icon">' + INFO_POINT_TYPES[pt.type].icon + '</span>' +
+                '<span class="lb-text">' + pt.text + '</span>' +
+            '</div>';
         canvas.appendChild(bubble);
     });
 }
 
+/* ─── 圈选矩形 ─── */
+
+/** 圈选分组颜色池 */
 const CIRCLE_GROUP_COLORS = ['#2563eb', '#ea580c', '#16a34a', '#9333ea', '#0891b2', '#dc2626'];
 
-
+/**
+ * 在画布上绘制圈选矩形（包围已选中的卡片），支持整体拖拽调薪
+ * @param {HTMLElement} canvas - 画布容器
+ */
 function addSelectionRect(canvas) {
-    const cards = Array.from(canvas.querySelectorAll('.scatter-card')).filter(c => selectedForCompare.has(parseInt(c.dataset.empId)));
+    const cards = Array.from(canvas.querySelectorAll('.scatter-card'))
+        .filter(c => selectedForCompare.has(parseInt(c.dataset.empId)));
     if (cards.length === 0) return;
     let minL = 100, maxL = 0, minT = 100, maxT = 0;
     cards.forEach(c => {
@@ -400,10 +517,14 @@ function addSelectionRect(canvas) {
     const pad = 4;
     let left = minL - pad, top = minT - pad, w = maxL - minL + pad * 2, h = maxT - minT + pad * 2;
     left = Math.max(0, left); top = Math.max(0, top);
-    if (left + w > 100) w = 100 - left; if (top + h > 100) h = 100 - top;
+    if (left + w > 100) w = 100 - left;
+    if (top + h > 100) h = 100 - top;
     const rect = document.createElement('div');
     rect.className = 'selection-rect';
-    rect.style.left = left + '%'; rect.style.top = top + '%'; rect.style.width = w + '%'; rect.style.height = h + '%';
+    rect.style.left = left + '%';
+    rect.style.top = top + '%';
+    rect.style.width = w + '%';
+    rect.style.height = h + '%';
     rect.title = '拖动矩形可整体调薪';
     if (circleSelectMode) {
         const hint = document.createElement('div');
@@ -416,7 +537,14 @@ function addSelectionRect(canvas) {
     makeSelectionRectDraggable(rect, cards);
 }
 
+/* ─── 散点卡片创建 ─── */
 
+/**
+ * 创建单个员工散点卡片 DOM 元素（含位置计算、事件绑定、拖拽）
+ * @param {Object} emp - 员工对象
+ * @param {Array} visibleStruct - 可见结构数组
+ * @returns {HTMLElement} 散点卡片元素
+ */
 function createScatterCard(emp, visibleStruct) {
     const inGroup = circleGroups.some(g => g.empIds.includes(emp.id));
     var isDimmed = false;
@@ -449,23 +577,23 @@ function createScatterCard(emp, visibleStruct) {
     card.dataset.empId = emp.id;
     card.dataset.mainDept = getMainDept(emp.dept);
     card.dataset.level = emp.level;
-    
+
     const mainDept = getMainDept(emp.dept);
     const isTier = (typeof axisXLabelType !== 'undefined' && axisXLabelType === 'tier');
     const vs = visibleStruct || (isTier ? DEPT_TIER_STRUCT : DEPT_LEVEL_STRUCT);
     const slot = isTier ? getEmpTier(emp) : emp.level;
-    // 新布局：纵轴为梯队/职级，横轴为薪酬
+    // 纵轴为梯队/职级，横轴为薪酬
     const yPercent = getYPositionInVisible(mainDept, slot, vs, emp.id);
-    
-    // 计算横坐标位置：按当前横轴范围 salaryAxisMinK ~ salaryAxisMaxK 映射到 0% ~ 100%
+
+    // 横坐标：按当前横轴范围 salaryAxisMinK ~ salaryAxisMaxK 映射到 0% ~ 100%
     const displaySalaryK = emp.salary * (1 + (emp.adjustment || 0) / 100) / 1000;
     const spanK = salaryAxisMaxK - salaryAxisMinK;
     const xPercent = spanK <= 0 ? 50 : ((displaySalaryK - salaryAxisMinK) / spanK) * 100;
-    
+
     card.style.left = xPercent + '%';
     card.style.top = yPercent + '%';
     card.style.transform = 'translate(-50%, -50%)';
-    
+
     const baseSalaryK = emp.salary / 1000;
     const deltaK = baseSalaryK * emp.adjustment / 100;
     const deltaStr = emp.adjustment !== 0 ? (deltaK >= 0 ? '+' : '') + deltaK.toFixed(1) + 'K ' + (emp.adjustment >= 0 ? '+' : '') + emp.adjustment + '%' : '';
@@ -474,18 +602,24 @@ function createScatterCard(emp, visibleStruct) {
     const hasAnomaly = anomalies.length > 0;
     if (hasAnomaly) card.classList.add('anomaly');
     else card.classList.remove('anomaly');
-    
+
     const hasAdjustment = (emp.adjustment || 0) !== 0;
     if (hasAdjustment) card.classList.add('scatter-card-adjusted');
     const needReasonIcon = hasAdjustment && !(emp.adjustmentReason || '').trim();
     if (needReasonIcon) card.classList.add('has-reason-icon');
     const reasonPenClass = needReasonIcon ? (hasAnomaly ? 'reason-pen-anomaly' : 'reason-pen-normal') : '';
-    const reasonIconHtml = needReasonIcon ? `<div class="scatter-card-reason-icon ${reasonPenClass}" aria-hidden="true">✎</div>` : '';
+    const reasonIconHtml = needReasonIcon
+        ? `<div class="scatter-card-reason-icon ${reasonPenClass}" aria-hidden="true">✎</div>`
+        : '';
     const infoPoints = getInfoPoints(emp);
     const firstInfoType = infoPoints.find(p => !infoPointHidden.has(p.type))?.type ?? null;
-    const infoBarHtml = firstInfoType ? `<div class="scatter-card-info-bar" style="background:${INFO_POINT_TYPES[firstInfoType].color}"></div>` : '';
+    const infoBarHtml = firstInfoType
+        ? `<div class="scatter-card-info-bar" style="background:${INFO_POINT_TYPES[firstInfoType].color}"></div>`
+        : '';
     if (firstInfoType) card.classList.add('has-info-bar');
-    var cardContent = typeof buildPersonCardContent === 'function' ? buildPersonCardContent(emp, { showDelta: true, showOriginalLine: true, compact: false }) : '';
+    var cardContent = typeof buildPersonCardContent === 'function'
+        ? buildPersonCardContent(emp, { showDelta: true, showOriginalLine: true, compact: false })
+        : '';
     card.innerHTML = infoBarHtml + reasonIconHtml + cardContent;
     if (isPerfPending) {
         var overlay = document.createElement('div');
@@ -493,7 +627,8 @@ function createScatterCard(emp, visibleStruct) {
         overlay.innerHTML = '<span class="scatter-card-perf-overlay-text">点击填报绩效</span>';
         card.appendChild(overlay);
     }
-    
+
+    // 鼠标悬停时显示异常/调薪原因滑出面板
     const hasReasonFilled = !!(emp.adjustmentReason || '').trim();
     const showSlideOutOnHover = hasAdjustment && (hasAnomaly || hasReasonFilled);
     if (showSlideOutOnHover) {
@@ -534,8 +669,9 @@ function createScatterCard(emp, visibleStruct) {
             }, 200);
         });
     }
-    
-    // 单击打开员工详情（调薪后定位到薪酬填报理由区域）；审批模式下联动表格与审批抽屉；填报模式下绩效待填时定位绩效 tab
+
+    // 单击打开员工详情（调薪后定位到薪酬填报理由区域）；
+    // 审批模式下联动表格与审批抽屉；填报模式下绩效待填时定位绩效 tab
     const needScrollToReason = hasAdjustment;
     card.addEventListener('click', function(ev) {
         if (circleSelectMode) return;
@@ -551,7 +687,7 @@ function createScatterCard(emp, visibleStruct) {
             showDetail(emp, needScrollToReason);
         }
     });
-    
+
     if (circleSelectMode) {
         card.addEventListener('click', function(ev) {
             if (ev.target.closest('.scatter-card-anomaly-badge')) return;
@@ -571,9 +707,9 @@ function createScatterCard(emp, visibleStruct) {
             if (currentView === 'scatter') renderScatterView();
         });
     }
-    
+
     if (!isPerfPending) makeDraggable(card, emp);
-    
+
     // 右键点击显示调薪输入框（卡片右侧）
     card.addEventListener('contextmenu', function(ev) {
         ev.preventDefault();
@@ -581,47 +717,56 @@ function createScatterCard(emp, visibleStruct) {
         if (circleSelectMode || isPerfPending) return;
         showSalaryAdjustPopover(card, emp);
     });
-    
+
     return card;
 }
 
-/** 在人员卡片右侧显示调薪输入框（人民币 + 百分比双区域） */
+/* ─── 调薪浮层 ─── */
+
+/**
+ * 在人员卡片右侧显示调薪输入框（人民币 + 百分比双区域，二者联动）
+ * @param {HTMLElement} card - 散点卡片元素
+ * @param {Object} emp - 员工对象
+ */
 function showSalaryAdjustPopover(card, emp) {
     // 移除已存在的调薪浮层
     var existing = document.getElementById('salaryAdjustPopover');
     if (existing) existing.remove();
-    
+
     var popover = document.createElement('div');
     popover.id = 'salaryAdjustPopover';
     popover.className = 'salary-adjust-popover';
-    
+
     var baseSalary = emp.salary || 0;
     var adj = (emp.adjustment != null ? emp.adjustment : 0);
     var amountRmb = Math.round(baseSalary * (adj / 100));
-    
-    popover.innerHTML = '<div class="salary-adjust-popover-title">快速调薪</div>' +
+
+    popover.innerHTML =
+        '<div class="salary-adjust-popover-title">快速调薪</div>' +
         '<div class="salary-adjust-popover-row">' +
-        '<input type="number" id="salaryAdjustAmount" class="salary-adjust-input" placeholder="调薪金额" value="' + (amountRmb !== 0 ? amountRmb : '') + '" step="100">' +
-        '<span class="salary-adjust-unit">元</span>' +
+            '<input type="number" id="salaryAdjustAmount" class="salary-adjust-input" placeholder="调薪金额" value="' + (amountRmb !== 0 ? amountRmb : '') + '" step="100">' +
+            '<span class="salary-adjust-unit">元</span>' +
         '</div>' +
         '<div class="salary-adjust-popover-row">' +
-        '<input type="number" id="salaryAdjustPct" class="salary-adjust-input" placeholder="调薪比例" value="' + (adj !== 0 ? adj : '') + '" step="0.5">' +
-        '<span class="salary-adjust-unit">%</span>' +
+            '<input type="number" id="salaryAdjustPct" class="salary-adjust-input" placeholder="调薪比例" value="' + (adj !== 0 ? adj : '') + '" step="0.5">' +
+            '<span class="salary-adjust-unit">%</span>' +
         '</div>' +
         '<div class="salary-adjust-popover-hint">输入任一数值，二者将联动</div>';
-    
+
     document.body.appendChild(popover);
-    
+
     var inputAmount = document.getElementById('salaryAdjustAmount');
     var inputPct = document.getElementById('salaryAdjustPct');
-    
+
+    /** 将当前百分比值应用到员工并刷新视图 */
     function applyAdjustment() {
         var pctVal = parseFloat(inputPct.value);
         emp.adjustment = isNaN(pctVal) ? 0 : Math.round(pctVal * 10) / 10;
         if (typeof renderScatterView === 'function') renderScatterView();
         if (typeof updateStats === 'function') updateStats();
     }
-    
+
+    /** 从金额输入框同步到百分比输入框 */
     function syncFromAmount() {
         var val = parseFloat(inputAmount.value);
         if (isNaN(val) || baseSalary <= 0) {
@@ -633,7 +778,8 @@ function showSalaryAdjustPopover(card, emp) {
         inputPct.value = Math.round(pct * 10) / 10;
         emp.adjustment = Math.round(pct * 10) / 10;
     }
-    
+
+    /** 从百分比输入框同步到金额输入框 */
     function syncFromPct() {
         var val = parseFloat(inputPct.value);
         if (isNaN(val)) {
@@ -645,27 +791,21 @@ function showSalaryAdjustPopover(card, emp) {
         inputAmount.value = amt;
         emp.adjustment = Math.round(val * 10) / 10;
     }
-    
-    inputAmount.addEventListener('input', function() {
-        syncFromAmount();
-        applyAdjustment();
-    });
+
+    inputAmount.addEventListener('input', function() { syncFromAmount(); applyAdjustment(); });
     inputAmount.addEventListener('change', function() { syncFromAmount(); applyAdjustment(); });
-    
-    inputPct.addEventListener('input', function() {
-        syncFromPct();
-        applyAdjustment();
-    });
+
+    inputPct.addEventListener('input', function() { syncFromPct(); applyAdjustment(); });
     inputPct.addEventListener('change', function() { syncFromPct(); applyAdjustment(); });
-    
+
     inputAmount.focus();
-    
+
     // 定位：卡片右侧，留出间隙
     var cardRect = card.getBoundingClientRect();
     var gap = 12;
     popover.style.left = (cardRect.right + gap) + 'px';
     popover.style.top = cardRect.top + 'px';
-    
+
     // 防止超出视口
     var popRect = popover.getBoundingClientRect();
     if (popRect.right > window.innerWidth) {
@@ -674,38 +814,59 @@ function showSalaryAdjustPopover(card, emp) {
     if (popRect.bottom > window.innerHeight) {
         popover.style.top = (window.innerHeight - popRect.height - 16) + 'px';
     }
-    
+
+    /** 关闭调薪浮层并移除全局点击监听 */
     function closePopover() {
         if (popover.parentNode) popover.parentNode.removeChild(popover);
         document.removeEventListener('click', closeOnClickOutside);
     }
-    
+
+    /** 点击浮层外部时关闭 */
     function closeOnClickOutside(e) {
         if (!popover.parentNode) return;
         if (popover.contains(e.target) || card.contains(e.target)) return;
         closePopover();
     }
-    
+
     setTimeout(function() { document.addEventListener('click', closeOnClickOutside); }, 0);
 }
 
-// X坐标转薪资(K)：按当前横轴范围 salaryAxisMinK ~ salaryAxisMaxK
+/* ─── 坐标转换工具 ─── */
 
+/**
+ * X 坐标百分比转薪资（K）：按当前横轴范围 salaryAxisMinK ~ salaryAxisMaxK
+ * @param {number} xPercent - X 坐标百分比（0~100）
+ * @returns {number} 薪资（K）
+ */
 function xToSalaryK(xPercent) {
     const t = Math.max(0, Math.min(100, xPercent)) / 100;
     return salaryAxisMinK + t * (salaryAxisMaxK - salaryAxisMinK);
 }
-// 兼容旧调用
+
+/**
+ * 兼容旧调用：等同于 xToSalaryK
+ * @deprecated 请使用 xToSalaryK
+ */
 function yToSalaryK(yPercent) {
     return xToSalaryK(yPercent);
 }
 
+/* ─── 磁力排斥辅助 ─── */
+
+/** 卡片重叠判定阈值（百分比） */
 const OVERLAP_THRESHOLD = 8;
+/** 磁力展开基础间距（百分比） */
 const SPREAD_GAP_BASE = 8;
+/** 磁力簇收起延迟计时器 ID */
 let clusterCollapseTid = null;
+/** 当前是否有卡片正在被拖拽 */
 let isDraggingAnyCard = false;
 
-
+/**
+ * 计算磁力展开时的卡片间距（根据画布高度和卡片高度自适应）
+ * @param {HTMLElement} canvas - 画布容器
+ * @returns {number} 展开间距（百分比）
+ */
 function getSpreadGap(canvas) {
     const rect = canvas.getBoundingClientRect();
     if (!rect.height) return SPREAD_GAP_BASE;
@@ -715,4 +876,4 @@ function getSpreadGap(canvas) {
     return Math.max(SPREAD_GAP_BASE, Math.min(18, minGapPct));
 }
 
-// 磁力排斥：构建重叠簇，hover/拖拽时展开
+// 磁力排斥：构建重叠簇，hover/拖拽时展开（实现在 drag.js 的 setupMagneticRepulsion）

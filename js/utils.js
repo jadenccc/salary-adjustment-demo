@@ -1,8 +1,20 @@
-/* === utils.js === 工具函数 */
+/* === utils.js === 工具函数 / 视图切换 / 初始化辅助 / Toast 提示 */
 
-var TASK_POOL = ['原神五星角色设计', '新版本地图规划', 'Boss战斗机制', '星铁活动策划', '角色技能平衡', '剧情线推进', '版本大世界内容', '多语言本地化', '角色立绘与动效', '玩法系统迭代', '新手引导优化', '联机玩法设计'];
-var TALENT_TAG_POOL = ['校招', '高潜', '社招', '骨干', '专家', '管培'];
+/* ─────────────────────────────────────────────
+ * 常量池（供 getEmpTasks 使用）
+ * ───────────────────────────────────────────── */
+const TASK_POOL = ['原神五星角色设计', '新版本地图规划', 'Boss战斗机制', '星铁活动策划', '角色技能平衡', '剧情线推进', '版本大世界内容', '多语言本地化', '角色立绘与动效', '玩法系统迭代', '新手引导优化', '联机玩法设计'];
+const TALENT_TAG_POOL = ['校招', '高潜', '社招', '骨干', '专家', '管培'];
 
+/* ─────────────────────────────────────────────
+ * 员工辅助工具
+ * ───────────────────────────────────────────── */
+
+/**
+ * 获取员工当前负责的事项列表（基于 id 伪随机）
+ * @param {Object} emp - 员工对象
+ * @returns {string[]}
+ */
 function getEmpTasks(emp) {
     const n = 1 + (emp.id % 3);
     const start = (emp.id * 7) % TASK_POOL.length;
@@ -11,7 +23,11 @@ function getEmpTasks(emp) {
     return out;
 }
 
-
+/**
+ * 获取员工人才标签列表
+ * @param {Object} emp - 员工对象
+ * @returns {string[]}
+ */
 function getEmpTalentTags(emp) {
     const hasCore = emp.tags && emp.tags.indexOf('核心') !== -1;
     const hasPotential = emp.tags && emp.tags.indexOf('潜力') !== -1;
@@ -20,11 +36,47 @@ function getEmpTalentTags(emp) {
     else list.push('社招');
     if (hasPotential) list.push('高潜');
     if (hasCore) list.push('骨干');
-    if (emp.level === 'P8') list.push('专家');
+    if (emp.level === '3-2') list.push('专家');
     return list.length ? list : ['—'];
 }
 
+/**
+ * 检测员工调薪异常情况
+ * @param {Object} emp - 员工对象
+ * @returns {string[]} 异常描述列表
+ */
+function getAnomalies(emp) {
+    const list = [];
+    const adj = emp.adjustment || 0;
+    const tags = emp.performanceTags || [];
+    const t0 = (tags[0] && tags[0].text) || '达到';
+    const t1 = (tags[1] && tags[1].text) || '达到';
+    const perfOrder = { '低于': 0, '略低': 1, '达到': 2, '略超': 3, '超出': 4 };
+    const level0 = perfOrder[t0] !== undefined ? perfOrder[t0] : 2;
+    const level1 = perfOrder[t1] !== undefined ? perfOrder[t1] : 2;
+    const worst = Math.min(level0, level1);
+    const best = Math.max(level0, level1);
 
+    if (adj === 0) return list;
+
+    if (worst <= 0 && adj >= 15) list.push('连续绩效趋势异常：两期绩效均低于预期且调薪≥15%');
+    if (best >= 3 && adj < 0) list.push('绩效与调薪方向不一致：本期绩效优秀却降薪');
+    if (worst <= 0 && adj > 15) list.push('绩效与调薪幅度不匹配：绩效差但调薪幅度过高(>15%)');
+    if (adj > 20) list.push('调薪幅度超过20%');
+    if (adj < -10) list.push('降薪幅度超过10%');
+
+    return list;
+}
+
+/* ─────────────────────────────────────────────
+ * AI 对比分析（与 ai-assistant.js 协作）
+ * ───────────────────────────────────────────── */
+
+/**
+ * 生成圈选员工的 AI 对比结论 HTML
+ * @param {Object[]} list - 员工列表
+ * @returns {string} HTML 字符串
+ */
 function getAICompareConclusion(list) {
     const conclusions = [];
     list.forEach(emp => {
@@ -48,7 +100,9 @@ function getAICompareConclusion(list) {
     return conclusions.join('');
 }
 
-
+/**
+ * 更新对比面板（隐藏旧表格，将分析发送到 AI 对话）
+ */
 function updateComparePanel() {
     const panel = document.getElementById('comparePanel');
     const list = employees.filter(e => selectedForCompare.has(e.id));
@@ -56,21 +110,21 @@ function updateComparePanel() {
         panel.classList.add('hidden');
         return;
     }
-    // 隐藏原对比面板（不再展示表格）
+    // 隐藏原对比面板（不再展示表格），改由 AI 助手对话框展示
     panel.classList.add('hidden');
-    // 将 AI 对比分析发送到 AI 助手对话框
     sendCompareAnalysisToAIDialog(list);
 }
 
+/**
+ * 将圈选对比分析发送到 AI 助手对话框
+ * @param {Object[]} list - 员工列表
+ */
 function sendCompareAnalysisToAIDialog(list) {
     if (typeof openAIDialog !== 'function') return;
-    // 打开对话框
     openAIDialog();
-    // 构建分析内容
     var names = list.map(function(e) { return e.name; }).join('、');
     var intro = '您圈选了 <strong>' + list.length + '</strong> 位同学（' + names + '），以下是 AI 对比分析：';
     appendAIMessage('ai', intro);
-    // 延迟显示分析结果（模拟思考）
     showAITyping();
     setTimeout(function() {
         removeAITyping();
@@ -79,6 +133,15 @@ function sendCompareAnalysisToAIDialog(list) {
     }, 800);
 }
 
+/* ─────────────────────────────────────────────
+ * DOM 定位工具
+ * ───────────────────────────────────────────── */
+
+/**
+ * 将滑出框定位到卡片右侧
+ * @param {HTMLElement} cardEl - 卡片元素
+ * @param {HTMLElement} slideOutEl - 滑出框元素
+ */
 function positionSlideOut(cardEl, slideOutEl) {
     const rect = cardEl.getBoundingClientRect();
     const gap = 8;
@@ -86,30 +149,13 @@ function positionSlideOut(cardEl, slideOutEl) {
     slideOutEl.style.top = rect.top + 'px';
 }
 
+/* ─────────────────────────────────────────────
+ * Toast 提示（提交确认弹窗）
+ * ───────────────────────────────────────────── */
 
-function getAnomalies(emp) {
-    const list = [];
-    const adj = emp.adjustment || 0;
-    const tags = emp.performanceTags || [];
-    const t0 = (tags[0] && tags[0].text) || '达到';
-    const t1 = (tags[1] && tags[1].text) || '达到';
-    const perfOrder = { '低于': 0, '略低': 1, '达到': 2, '略超': 3, '超出': 4 };
-    const level0 = perfOrder[t0] !== undefined ? perfOrder[t0] : 2;
-    const level1 = perfOrder[t1] !== undefined ? perfOrder[t1] : 2;
-    const worst = Math.min(level0, level1);
-    const best = Math.max(level0, level1);
-    
-    if (adj === 0) return list;
-    
-    if (worst <= 0 && adj >= 15) list.push('连续绩效趋势异常：两期绩效均低于预期且调薪≥15%');
-    if (best >= 3 && adj < 0) list.push('绩效与调薪方向不一致：本期绩效优秀却降薪');
-    if (worst <= 0 && adj > 15) list.push('绩效与调薪幅度不匹配：绩效差但调薪幅度过高(>15%)');
-    if (adj > 20) list.push('调薪幅度超过20%');
-    if (adj < -10) list.push('降薪幅度超过10%');
-    
-    return list;
-}
-
+/**
+ * 显示填报提交确认 Toast（绩效+薪酬）
+ */
 function showFillSubmitToast() {
     var toast = document.getElementById('submitToast');
     var headerTitle = toast ? toast.querySelector('.toast-header h3') : null;
@@ -137,6 +183,9 @@ function showFillSubmitToast() {
     if (toast) toast.classList.add('show');
 }
 
+/**
+ * 显示薪酬方案明细 Toast
+ */
 function showSubmitToast() {
     var toast = document.getElementById('submitToast');
     var headerTitle = toast ? toast.querySelector('.toast-header h3') : null;
@@ -177,19 +226,26 @@ function showSubmitToast() {
     if (toast) toast.classList.add('show');
 }
 
-
+/**
+ * 关闭提交确认 Toast
+ */
 function closeSubmitToast() {
     document.getElementById('submitToast').classList.remove('show');
 }
 
+// Toast 点击背景关闭
 document.getElementById('submitToast').addEventListener('click', function(e) {
     if (e.target === this) closeSubmitToast();
 });
 
-// 切换筛选
+/* ─────────────────────────────────────────────
+ * 数据操作工具
+ * ───────────────────────────────────────────── */
 
+/**
+ * 重置所有员工调薪数据（需用户确认）
+ */
 function resetView() {
-    // 重置所有调薪
     if (confirm('确认重置所有调薪数据？')) {
         employees.forEach(emp => emp.adjustment = 0);
         if (currentView === 'scatter') renderScatterView();
@@ -198,14 +254,15 @@ function resetView() {
     }
 }
 
-
+/**
+ * 批量调薪（基于表格复选框选中行）
+ */
 function batchAdjust() {
     const selected = document.querySelectorAll('input[type="checkbox"]:checked');
     if (selected.length === 0) {
         alert('请先选择要批量调薪的员工');
         return;
     }
-    
     const percentage = prompt('请输入统一调薪幅度 (%):', '15');
     if (percentage) {
         selected.forEach(checkbox => {
@@ -216,26 +273,35 @@ function batchAdjust() {
                 if (emp) emp.adjustment = parseInt(percentage);
             }
         });
-        
         renderTableView();
         updateStats();
     }
 }
 
-
+/**
+ * 导出数据（演示版占位）
+ */
 function exportData() {
     alert('导出功能：\n\n将生成包含以下内容的Excel文件：\n- 所有员工调薪明细\n- 预算使用统计\n- 异常检测报告\n\n(演示版暂不实际导出)');
 }
 
+/* ─────────────────────────────────────────────
+ * 视图切换（宽表 / 画布 / 九宫格）
+ * ───────────────────────────────────────────── */
+
+/** 返回宽表视图（兼容旧调用） */
 function backToWideTable() {
     switchToTableView();
 }
 
+/** 返回画布视图（兼容旧调用） */
 function backToBoard() {
     switchToCanvasView();
 }
 
-/** 切换到宽表视图 */
+/**
+ * 切换到宽表视图
+ */
 function switchToTableView() {
     currentView = 'table';
     var sharedHeader = document.getElementById('sharedHeader');
@@ -245,7 +311,6 @@ function switchToTableView() {
     var scatterTopWidgets = document.getElementById('scatterTopWidgets');
     var minimalBar = document.getElementById('canvasToolbarMinimal');
 
-    // 显示共享头部，隐藏散点图自带的顶部栏
     if (sharedHeader) sharedHeader.style.display = 'block';
     if (scatterTopWidgets) scatterTopWidgets.style.display = 'none';
     if (scatterView) scatterView.style.display = 'none';
@@ -268,7 +333,9 @@ function switchToTableView() {
     if (typeof renderTableView === 'function') renderTableView();
 }
 
-/** 切换到画布视图 */
+/**
+ * 切换到画布（散点图）视图
+ */
 function switchToCanvasView() {
     currentView = 'scatter';
     var sharedHeader = document.getElementById('sharedHeader');
@@ -278,7 +345,6 @@ function switchToCanvasView() {
     var scatterTopWidgets = document.getElementById('scatterTopWidgets');
     var minimalBar = document.getElementById('canvasToolbarMinimal');
 
-    // 显示共享头部，隐藏散点图自带的顶部栏
     if (sharedHeader) sharedHeader.style.display = 'block';
     if (scatterTopWidgets) scatterTopWidgets.style.display = 'none';
     if (scatterView) scatterView.style.display = 'block';
@@ -301,17 +367,17 @@ function switchToCanvasView() {
     if (typeof renderScatterView === 'function') renderScatterView();
 }
 
+/**
+ * 通用视图切换入口
+ * @param {string} view - 'table' | 'scatter' | 'grid'
+ */
 function switchView(view) {
     if (view === 'table') { switchToTableView(); return; }
     if (view === 'scatter') { switchToCanvasView(); return; }
-    // grid 视图保留旧逻辑
+    // grid 视图
     currentView = view;
-    
-    // 更新按钮状态
     document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
     if (event && event.target) event.target.closest('.view-btn')?.classList.add('active');
-    
-    // 显示对应视图
     document.getElementById('scatterView').style.display = 'none';
     document.getElementById('tableView').style.display = 'none';
     document.getElementById('gridView').style.display = view === 'grid' ? 'block' : 'none';
@@ -319,18 +385,24 @@ function switchView(view) {
     if (sharedHeader) sharedHeader.style.display = 'none';
     var minimalBar = document.getElementById('canvasToolbarMinimal');
     if (minimalBar) minimalBar.style.display = 'flex';
-    
     if (view === 'grid') renderGridView();
 }
 
+/* ─────────────────────────────────────────────
+ * 画布交互初始化
+ * ───────────────────────────────────────────── */
+
+/**
+ * 初始化画布横向拖拽平移（左键/右键拖拽）
+ */
 function initChartPan() {
     const container = document.getElementById('chartContainer');
     if (!container) return;
     container.classList.add('pan-mode');
-    
+
     let isPanning = false;
     let startX, startScrollLeft;
-    
+
     container.addEventListener('mousedown', function(e) {
         if (e.button === 2 && !e.target.closest('.scatter-card')) {
             e.preventDefault();
@@ -343,25 +415,26 @@ function initChartPan() {
             startScrollLeft = container.scrollLeft;
         }
     });
-    
+
     container.addEventListener('contextmenu', function(e) {
         e.preventDefault();
     });
-    
+
     document.addEventListener('mousemove', function(e) {
         if (isPanning) {
             const dx = e.clientX - startX;
             container.scrollLeft = Math.max(0, startScrollLeft - dx);
         }
     });
-    
+
     document.addEventListener('mouseup', function() {
         isPanning = false;
     });
 }
 
-// 切换视图
-
+/**
+ * 初始化异常 Tooltip 的鼠标移出隐藏逻辑
+ */
 function initAnomalyTooltipHide() {
     document.addEventListener('mousemove', function(e) {
         if (!e.target || !e.target.closest) return;
@@ -374,5 +447,3 @@ function initAnomalyTooltipHide() {
         if (blueSlide) blueSlide.classList.remove('visible');
     });
 }
-
-// 画布横向拖拽平移
